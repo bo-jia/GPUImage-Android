@@ -53,10 +53,8 @@ public class GPUImageContext {
     }
 
     public void setActiveShaderProgram(GLProgram shaderProgram) {
-        if (currentShaderProgram != shaderProgram) {
-            currentShaderProgram = shaderProgram;
-            shaderProgram.use();
-        }
+        currentShaderProgram = shaderProgram;
+        shaderProgram.use();
     }
 
     public GSize sizeThatFitsWithinATextureForSize(GSize inputSize) {

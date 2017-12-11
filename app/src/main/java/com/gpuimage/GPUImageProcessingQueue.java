@@ -48,9 +48,12 @@ public class GPUImageProcessingQueue {
                 synSem.release();
             }
         });
-        mThreadRequest.request();
         try {
-            synSem.acquire();
+            while (true) {
+                mThreadRequest.request();
+                Thread.sleep(10);
+                if (synSem.tryAcquire()) break;
+            }
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -59,6 +62,7 @@ public class GPUImageProcessingQueue {
     public void runAsyn(Runnable runnable) {
         if (runnable == null) return;
         appendJob(runnable);
+        if (mThreadRequest != null) mThreadRequest.request();
     }
 
     private void appendJob(Runnable runnable) {
@@ -73,24 +77,13 @@ public class GPUImageProcessingQueue {
     }
 
     public void execute() {
-        boolean finished = false;
-        do {
-            Runnable job = null;
-            synchronized (queue) {
-                if (!queue.isEmpty()) {
-                    job = queue.removeFirst();
-                }
-            }
-            if (job == null) {
-                return;
-            } else {
-                job.run();
-            }
-            synchronized (queue) {
-                finished = queue.isEmpty();
-            }
-        } while (!finished);
+        LinkedList<Runnable> tempQueue = new LinkedList<>();
+        synchronized (queue) {
+            tempQueue.addAll(queue);
+            queue.clear();
+        }
+        while (!tempQueue.isEmpty()) {
+            tempQueue.removeFirst().run();
+        }
     }
-
-
 }

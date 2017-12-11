@@ -1,5 +1,6 @@
 package com.gpuimage.sources;
 
+import android.graphics.Bitmap;
 import android.opengl.GLES20;
 
 import com.gpuimage.GLProgram;
@@ -9,7 +10,9 @@ import com.gpuimage.GPUImageFilter;
 import com.gpuimage.GPUImageInput;
 import com.gpuimage.GPUImageProcessingQueue;
 import com.gpuimage.GSize;
+import com.gpuimage.cvutils.CVImageUtils;
 
+import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 
 /**
@@ -25,9 +28,12 @@ public class GPUImageMovie extends GPUImageOutput {
     private int mYuvConversionMatrixUniform;
 
     private int mLuminanceTexture, mChrominanceTexture;
+
     private GSize mFrameSize = null;
 
     private float[] mPreferredConversion;
+    private byte[] mLuminanceData, mChrominanceData;
+
 
     private final static float mSquareVertices[] = {
             -1.0f, -1.0f,
@@ -47,7 +53,7 @@ public class GPUImageMovie extends GPUImageOutput {
     }
 
     private void yuvConversionSetup() {
-        GPUImageProcessingQueue.sharedQueue().runSyn(new Runnable() {
+        GPUImageProcessingQueue.sharedQueue().runAsyn(new Runnable() {
             @Override
             public void run() {
                 mYuvConversionProgram = GPUImageContext.sharedContext().programForShaders(
@@ -66,13 +72,12 @@ public class GPUImageMovie extends GPUImageOutput {
                     }
                 }
 
+                GPUImageContext.sharedContext().setActiveShaderProgram(mYuvConversionProgram);
                 mYuvConversionPositionAttribute = mYuvConversionProgram.attributeIndex("position");
                 mYuvConversionTextureCoordinateAttribute = mYuvConversionProgram.attributeIndex("inputTextureCoordinate");
                 mYuvConversionLuminanceTextureUniform = mYuvConversionProgram.uniformIndex("luminanceTexture");
                 mYuvConversionChrominanceTextureUniform = mYuvConversionProgram.uniformIndex("chrominanceTexture");
                 mYuvConversionMatrixUniform = mYuvConversionProgram.uniformIndex("colorConversionMatrix");
-
-                GPUImageContext.sharedContext().setActiveShaderProgram(mYuvConversionProgram);
 
                 GLES20.glEnableVertexAttribArray(mYuvConversionPositionAttribute);
                 GLES20.glEnableVertexAttribArray(mYuvConversionTextureCoordinateAttribute);
@@ -80,8 +85,9 @@ public class GPUImageMovie extends GPUImageOutput {
         });
     }
 
-    private void checkTexture(int width, int height) {
-        if (mFrameSize != null || mFrameSize.width != width || mFrameSize.height != height) {
+    private void loadTexture(byte[] yuv, int width, int height) {
+        if (yuv == null || width == 0 || height == 0) return;
+        if (mFrameSize == null || mFrameSize.width != width || mFrameSize.height != height) {
             if (mLuminanceTexture > 0) {
                 GLES20.glDeleteTextures(1, new int[] {mLuminanceTexture}, 0);
             }
@@ -97,43 +103,68 @@ public class GPUImageMovie extends GPUImageOutput {
             mChrominanceTexture = tex[1];
 
             GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mLuminanceTexture);
+            GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
+            GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR);
             GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE);
             GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE);
             GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0, GLES20.GL_LUMINANCE, width, height, 0, GLES20.GL_LUMINANCE, GLES20.GL_UNSIGNED_BYTE,
                     null);
 
             GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mChrominanceTexture);
+            GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
+            GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR);
             GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE);
             GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE);
-            GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0, GLES20.GL_LUMINANCE_ALPHA, width, height, 0, GLES20.GL_LUMINANCE_ALPHA, GLES20.GL_UNSIGNED_BYTE,
+            GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0, GLES20.GL_LUMINANCE_ALPHA, width/2, height/2, 0, GLES20.GL_LUMINANCE_ALPHA, GLES20.GL_UNSIGNED_BYTE,
                     null);
         }
+
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mLuminanceTexture);
+        GLES20.glTexSubImage2D(GLES20.GL_TEXTURE_2D, 0, 0, 0, width, height, GLES20.GL_LUMINANCE, GLES20.GL_UNSIGNED_BYTE, ByteBuffer.wrap(mLuminanceData));
+
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mChrominanceTexture);
+        GLES20.glTexSubImage2D(GLES20.GL_TEXTURE_2D, 0, 0, 0, width/2, height/2, GLES20.GL_LUMINANCE_ALPHA, GLES20.GL_UNSIGNED_BYTE, ByteBuffer.wrap(mChrominanceData));
     }
 
-    public void processMovieFrame(byte[] yuvData, int width, int height, double frameTime) {
+    private void copyFrame(byte[] yuv, int width, int height) {
+        if (mLuminanceData == null || mLuminanceData.length != width * height)
+            mLuminanceData = new byte[width * height];
+        System.arraycopy(yuv, 0, mLuminanceData, 0, mLuminanceData.length);
 
-        mProcessingFrameTime = frameTime;
-        mPreferredConversion = GPUImageColorConversion.kColorConversion601FullRangeDefault;
+        if (mChrominanceData == null || mChrominanceData.length != width * height / 2)
+            mChrominanceData = new byte[width * height / 2];
+        System.arraycopy(yuv, width * height, mChrominanceData, 0, mChrominanceData.length);
+    }
 
-        checkTexture(width, height);
+    public void processMovieFrame(final byte[] yuvData, final int width, final int height, final double frameTime) {
+        copyFrame(yuvData, width, height);
+        GPUImageProcessingQueue.sharedQueue().runAsyn(new Runnable() {
+            @Override
+            public void run() {
+                mProcessingFrameTime = frameTime;
+                mPreferredConversion = GPUImageColorConversion.kColorConversion601FullRangeDefault;
 
-        convertYUVToRGBOutput();
+                loadTexture(yuvData, width, height);
 
-        for (GPUImageInput currentTarget : mTargets) {
-            int indexOfObject = mTargets.indexOf(currentTarget);
-            int targetTextureIndex = mTargetTextureIndices.get(indexOfObject);
+                convertYUVToRGBOutput();
 
-            currentTarget.setInputSize(mFrameSize, targetTextureIndex);
-            currentTarget.setInputFramebuffer(mOutputFramebuffer, targetTextureIndex);
-        }
+                for (GPUImageInput currentTarget : mTargets) {
+                    int indexOfObject = mTargets.indexOf(currentTarget);
+                    int targetTextureIndex = mTargetTextureIndices.get(indexOfObject);
 
-        mOutputFramebuffer.unlock();
+                    currentTarget.setInputSize(mFrameSize, targetTextureIndex);
+                    currentTarget.setInputFramebuffer(mOutputFramebuffer, targetTextureIndex);
+                }
 
-        for (GPUImageInput currentTarget : mTargets) {
-            int indexOfObject = mTargets.indexOf(currentTarget);
-            int targetTextureIndex = mTargetTextureIndices.get(indexOfObject);
-            currentTarget.newFrameReadyAtTime(frameTime, targetTextureIndex);
-        }
+                mOutputFramebuffer.unlock();
+
+                for (GPUImageInput currentTarget : mTargets) {
+                    int indexOfObject = mTargets.indexOf(currentTarget);
+                    int targetTextureIndex = mTargetTextureIndices.get(indexOfObject);
+                    currentTarget.newFrameReadyAtTime(frameTime, targetTextureIndex);
+                }
+            }
+        });
     }
 
     public void endProcessing() {
@@ -144,10 +175,12 @@ public class GPUImageMovie extends GPUImageOutput {
 
     private void convertYUVToRGBOutput() {
         GPUImageContext.sharedContext().setActiveShaderProgram(mYuvConversionProgram);
+
         mOutputFramebuffer = GPUImageContext.sharedContext().framebufferCache.fetchFramebuffer(mFrameSize, false);
         mOutputFramebuffer.activateFramebuffer();
+        GLog.checkFramebufferStatus();
 
-        GLES20.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        GLES20.glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
 
         GLES20.glActiveTexture(GLES20.GL_TEXTURE4);
@@ -158,10 +191,12 @@ public class GPUImageMovie extends GPUImageOutput {
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mChrominanceTexture);
         GLES20.glUniform1i(mYuvConversionChrominanceTextureUniform, 5);
 
-        GLES20.glUniformMatrix3fv(mYuvConversionMatrixUniform, 1, false, FloatBuffer.wrap(mPreferredConversion));
+        GLES20.glUniformMatrix3fv(mYuvConversionMatrixUniform, 1, false, mPreferredConversion, 0);
 
-        GLES20.glVertexAttribPointer(mYuvConversionPositionAttribute, 2, GLES20.GL_FLOAT, false, 0, FloatBuffer.wrap(mSquareVertices));
-        GLES20.glVertexAttribPointer(mYuvConversionTextureCoordinateAttribute, 2, GLES20.GL_FLOAT, false, 0, FloatBuffer.wrap(mTextureCoordinates));
+        mVerticesCoordBuffer = GPUImageOutput.FillNativeBuffer(mVerticesCoordBuffer, mSquareVertices);
+        GLES20.glVertexAttribPointer(mYuvConversionPositionAttribute, 2, GLES20.GL_FLOAT, false, 0, mVerticesCoordBuffer);
+        mTextureCoordBuffer = GPUImageOutput.FillNativeBuffer(mTextureCoordBuffer, mTextureCoordinates);
+        GLES20.glVertexAttribPointer(mYuvConversionTextureCoordinateAttribute, 2, GLES20.GL_FLOAT, false, 0, mTextureCoordBuffer);
 
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
     }

@@ -13,6 +13,8 @@ import com.gpuimage.GPUImageProcessingQueue;
 import com.gpuimage.GPUImageRenderer;
 import com.gpuimage.R;
 import com.gpuimage.mediautils.GMediaVideoReader;
+import com.gpuimage.outputs.GPUImageView;
+import com.gpuimage.sources.GPUImageMovie;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -21,7 +23,12 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
+import javax.microedition.khronos.egl.EGLConfig;
+import javax.microedition.khronos.opengles.GL10;
+
 public class MainActivity extends AppCompatActivity {
+
+    private GPUImageMovie mMovie;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -29,13 +36,8 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         GPUImageRenderer gpuImageRenderer = new GPUImageRenderer();
-
-        final GLSurfaceView glSurfaceView = findViewById(R.id.iv_test);
-        glSurfaceView.setEGLContextClientVersion(2);
-        glSurfaceView.setRenderer(gpuImageRenderer);
-        glSurfaceView.setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
-        glSurfaceView.setDebugFlags(GLSurfaceView.DEBUG_CHECK_GL_ERROR | GLSurfaceView.DEBUG_LOG_GL_CALLS);
-        glSurfaceView.setPreserveEGLContextOnPause(true);
+        final GPUImageView glSurfaceView = findViewById(R.id.iv_test);
+        glSurfaceView.setGPUImageRenderer(gpuImageRenderer);
 
         GPUImageProcessingQueue.sharedQueue().setThreadRequest(new GPUImageProcessingQueue.ThreadRequest() {
             @Override
@@ -44,29 +46,41 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        mMovie = new GPUImageMovie();
+        mMovie.addTarget(glSurfaceView);
 
         Button bt = (Button) findViewById(R.id.bt_test);
         bt.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
 
-                String path = Environment.getExternalStorageDirectory().getAbsolutePath() + "/test.avi";
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        String path = Environment.getExternalStorageDirectory().getAbsolutePath() + "/test.avi";
 
-                InputStream inputStream = null;
-                try {
-                    inputStream = getApplicationContext().getAssets().open("Megamind.avi");
-                    writeToFile(inputStream, path);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                        InputStream inputStream = null;
+                        try {
+                            inputStream = getApplicationContext().getAssets().open("Megamind.avi");
+                            writeToFile(inputStream, path);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
 
-                GMediaVideoReader videoReader = new GMediaVideoReader();
-                videoReader.loadMP4(path);
-                int count = 0;
-                while (videoReader.readFrame()) {
-                    writeBitmap(videoReader.getFrame(), "" + count + ".png");
-                    count++;
-                }
+                        GMediaVideoReader videoReader = new GMediaVideoReader();
+                        videoReader.loadMP4(path);
+                        while (videoReader.readFrame()) {
+                            try {
+                                mMovie.processMovieFrame(videoReader.getNV12Data(), videoReader.getFrameWidth(), videoReader.getFrameHeight(), videoReader.getTimestamp());
+                                Thread.sleep(50);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+                }).run();
+
+
 
 /*
                 Bitmap bitmap = BitmapFactory.decodeResource(getResources(),R.drawable.test);
@@ -136,4 +150,6 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
         }
     }
+
+
 }

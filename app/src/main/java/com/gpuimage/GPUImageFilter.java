@@ -137,11 +137,10 @@ public class GPUImageFilter extends GPUImageIO {
                     }
                 }
 
+                GPUImageContext.sharedContext().setActiveShaderProgram(mFilterProgram);
                 mFilterPositionAttribute = mFilterProgram.attributeIndex("position");
                 mFilterTextureCoordinateAttribute = mFilterProgram.attributeIndex("inputTextureCoordinate");
                 mFilterInputTextureUniform = mFilterProgram.uniformIndex("inputImageTexture");
-
-                GPUImageContext.sharedContext().setActiveShaderProgram(mFilterProgram);
 
                 GLES20.glEnableVertexAttribArray(mFilterPositionAttribute);
                 GLES20.glEnableVertexAttribArray(mFilterTextureCoordinateAttribute);

@@ -1,6 +1,7 @@
 package com.gpuimage;
 
 import android.opengl.GLES20;
+import android.util.Log;
 
 import java.util.Vector;
 

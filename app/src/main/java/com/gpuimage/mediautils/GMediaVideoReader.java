@@ -32,6 +32,7 @@ public class GMediaVideoReader {
     private double mDuration;
     private byte mData[], mNV12[];
     private int mFrameWidth, mFrameHeight;
+    private double mTimestamp;
 
     private MediaCodec.BufferInfo mInfo = new MediaCodec.BufferInfo();
 
@@ -129,9 +130,10 @@ public class GMediaVideoReader {
                     if (mData == null || mData.length != mInfo.size) {
                         mData = new byte[mInfo.size];
                     }
+                    mTimestamp = mMediaExtractor.getSampleTime();
                     buffer.get(mData);
                     buffer.clear();
-                    convertToYUV();
+                    convertToNV12();
                     mMediaCodec.releaseOutputBuffer(outputIndex, false);
                 } break;
             }
@@ -140,7 +142,7 @@ public class GMediaVideoReader {
         return true;
     }
 
-    public void convertToYUV() {
+    public void convertToNV12() {
         int colorFormat = mMediaFormat.getInteger(MediaFormat.KEY_COLOR_FORMAT);
 
         int frameWidth  = mMediaFormat.getInteger(MediaFormat.KEY_WIDTH);
@@ -203,6 +205,8 @@ public class GMediaVideoReader {
     public byte[] getNV12Data() {
         return mNV12;
     }
+
+    public double getTimestamp() { return mTimestamp; }
 
     public Bitmap getFrame() {
 

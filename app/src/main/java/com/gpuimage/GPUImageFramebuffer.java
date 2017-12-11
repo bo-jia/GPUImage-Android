@@ -4,6 +4,7 @@ import android.graphics.Bitmap;
 import android.opengl.GLES20;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
 
 public class GPUImageFramebuffer {
@@ -30,9 +31,15 @@ public class GPUImageFramebuffer {
 		mMissingFramebuffer = onlyGenerateTexture;
 
 		if (mMissingFramebuffer) {
-
+			GPUImageProcessingQueue.sharedQueue().runSyn(new Runnable() {
+				@Override
+				public void run() {
+					generateTexture();
+					mFramebuffer = 0;
+				}
+			});
 		} else {
-
+			generateFramebuffer();
 		}
 	}
 
@@ -148,8 +155,11 @@ public class GPUImageFramebuffer {
 			public void run() {
 				byte[] data = new byte[mSize.width * mSize.height * 4];
 				ByteBuffer buffer = ByteBuffer.wrap(data);
+				buffer.order(ByteOrder.LITTLE_ENDIAN);
+				GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, mFramebuffer);
 				GLES20.glReadPixels(0, 0, mSize.width, mSize.height, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, buffer);
-				bitmapFromBytes.copyPixelsFromBuffer(buffer);
+				buffer.rewind();
+				bitmapFromBytes.copyPixelsFromBuffer(ByteBuffer.wrap(data));
 				unlock();
 			}
 		});

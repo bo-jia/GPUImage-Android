@@ -25,7 +25,7 @@ public class GPUImageColorConversion {
 
     public final static String kGPUImageYUVFullRangeConversionForLAFragmentShaderString = "" +
             " varying highp vec2 textureCoordinate;\n" +
-            " \n" +
+
             " uniform sampler2D luminanceTexture;\n" +
             " uniform sampler2D chrominanceTexture;\n" +
             " uniform mediump mat3 colorConversionMatrix;\n" +

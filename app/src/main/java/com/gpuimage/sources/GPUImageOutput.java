@@ -9,6 +9,8 @@ import com.gpuimage.GPUImageProcessingQueue;
 import com.gpuimage.GPUTextureOptions;
 import com.gpuimage.GSize;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.Vector;
 
 public class GPUImageOutput {
@@ -27,6 +29,8 @@ public class GPUImageOutput {
 	protected boolean mUsingNextFrameForImageCapture = false;
 	protected boolean mAllTargetsWantMonochromeData = true;
 
+	protected ByteBuffer mTextureCoordBuffer, mVerticesCoordBuffer;
+
 	public GPUTextureOptions outputTextureOptions = new GPUTextureOptions();
 	public boolean enable = true;
 
@@ -34,6 +38,7 @@ public class GPUImageOutput {
 	public FrameProcessingCompletionListener frameProcessingCompletionListener = null;
 
 	public boolean shouldSmoothlyScaleOutput = false;
+
 
 	public void setInputFramebuffer(GPUImageInput target, int inputTextureIndex) {
 		target.setInputFramebuffer(framebufferForOutput(), inputTextureIndex);
@@ -75,7 +80,7 @@ public class GPUImageOutput {
 
 		cachedMaximumOutputSize = GSize.newZero();
 
-		GPUImageProcessingQueue.sharedQueue().runSyn(new Runnable() {
+		GPUImageProcessingQueue.sharedQueue().runAsyn(new Runnable() {
 			@Override
 			public void run() {
 				setInputFramebuffer(newTarget, textureLocation);
@@ -149,4 +154,12 @@ public class GPUImageOutput {
 	// TODO: 30/11/2017 还没有实现audio encoding 相关
 	public void setAudioEncodingTarget() {}
 
+	public static ByteBuffer FillNativeBuffer(ByteBuffer buffer, float[] values) {
+		if (values == null) return buffer;
+		if (buffer == null || buffer.order() != ByteOrder.nativeOrder() || buffer.capacity() != values.length * Float.BYTES) {
+			buffer = ByteBuffer.allocateDirect(values.length * Float.BYTES).order(ByteOrder.nativeOrder());
+		}
+		buffer.asFloatBuffer().put(values);
+		return buffer;
+	}
 }
