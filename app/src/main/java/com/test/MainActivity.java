@@ -1,7 +1,6 @@
 package com.test;
 
 import android.graphics.Bitmap;
-import android.opengl.GLSurfaceView;
 import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -9,10 +8,11 @@ import android.text.TextUtils;
 import android.view.View;
 import android.widget.Button;
 
-import com.gpuimage.GPUImageProcessingQueue;
-import com.gpuimage.GPUImageRenderer;
+import com.gpuimage.GPUImageFilter;
 import com.gpuimage.R;
+import com.gpuimage.mediautils.GMediaPlayer;
 import com.gpuimage.mediautils.GMediaVideoReader;
+import com.gpuimage.outputs.GPUImageMovieWriter;
 import com.gpuimage.outputs.GPUImageView;
 import com.gpuimage.sources.GPUImageMovie;
 
@@ -22,64 +22,77 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-
-import javax.microedition.khronos.egl.EGLConfig;
-import javax.microedition.khronos.opengles.GL10;
+import com.gpuimage.GLog;
 
 public class MainActivity extends AppCompatActivity {
 
     private GPUImageMovie mMovie;
+    private GPUImageMovieWriter mMovieWriter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-        GPUImageRenderer gpuImageRenderer = new GPUImageRenderer();
+        
         final GPUImageView glSurfaceView = findViewById(R.id.iv_test);
-        glSurfaceView.setGPUImageRenderer(gpuImageRenderer);
 
-        GPUImageProcessingQueue.sharedQueue().setThreadRequest(new GPUImageProcessingQueue.ThreadRequest() {
-            @Override
-            public void request() {
-                glSurfaceView.requestRender();
-            }
-        });
 
         mMovie = new GPUImageMovie();
-        mMovie.addTarget(glSurfaceView);
+//        mMovie.addTarget(glSurfaceView);
+        final GMediaPlayer player = new GMediaPlayer();
+        GMediaPlayer.defaultConfig(player, mMovie);
 
+        GPUImageFilter filter = new GPUImageFilter();
+        mMovie.addTarget(filter);
+        filter.addTarget(glSurfaceView);
+
+
+        String path = Environment.getExternalStorageDirectory().getAbsolutePath() + "/test.avi";
+        /*
+        InputStream inputStream = null;
+        try {
+            inputStream = getApplicationContext().getAssets().open("Megamind.avi");
+            writeToFile(inputStream, path);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        final GMediaVideoReader videoReader = new GMediaVideoReader();
+        videoReader.loadMP4(path);
+
+        String outputPath = Environment.getExternalStorageDirectory().getAbsolutePath() + "/gpuimage/out.mp4";
+        mMovieWriter = new GPUImageMovieWriter(videoReader.getFrameWidth(), videoReader.getFrameHeight(), outputPath);
+        mMovie.addTarget(mMovieWriter);
+*/
         Button bt = (Button) findViewById(R.id.bt_test);
         bt.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-
+                String path = Environment.getExternalStorageDirectory().getAbsolutePath() + "/test.avi";
+                player.loadMP4(path);
+                player.start();
+                player.play();
+/*
                 new Thread(new Runnable() {
                     @Override
                     public void run() {
-                        String path = Environment.getExternalStorageDirectory().getAbsolutePath() + "/test.avi";
-
-                        InputStream inputStream = null;
-                        try {
-                            inputStream = getApplicationContext().getAssets().open("Megamind.avi");
-                            writeToFile(inputStream, path);
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-
-                        GMediaVideoReader videoReader = new GMediaVideoReader();
-                        videoReader.loadMP4(path);
+                        mMovieWriter.startRecording();
+                        videoReader.start();
                         while (videoReader.readFrame()) {
-                            try {
+                            if (videoReader.getTimestamp() < 0) break;
+                            GLog.v("read frame " + videoReader.getTimestamp());
+//                            try {
                                 mMovie.processMovieFrame(videoReader.getNV12Data(), videoReader.getFrameWidth(), videoReader.getFrameHeight(), videoReader.getTimestamp());
-                                Thread.sleep(50);
-                            } catch (InterruptedException e) {
-                                e.printStackTrace();
-                            }
+//                                Thread.sleep(50);
+//                            } catch (InterruptedException e) {
+//                                e.printStackTrace();
+//                            }
+
                         }
+                        mMovieWriter.finishRecording();
                     }
                 }).run();
-
+*/
 
 
 /*
