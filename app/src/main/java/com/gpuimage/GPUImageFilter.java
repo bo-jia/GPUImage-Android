@@ -4,6 +4,8 @@ import android.graphics.Bitmap;
 import android.opengl.GLES20;
 import android.util.Size;
 
+import com.gpuimage.sources.GPUImageOutput;
+
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
@@ -120,10 +122,11 @@ public class GPUImageFilter extends GPUImageIO {
     public GPUImageFilter(final String vertexShaderString, final String fragmentShaderString) {
         mImageCaptureSemaphore.release();
 
-        GPUImageProcessingQueue.sharedQueue().runSyn(new Runnable() {
+        GDispatchQueue.runSynchronouslyOnVideoProcessingQueue(new Runnable() {
             @Override
             public void run() {
-                mFilterProgram = GPUImageContext.sharedContext().programForShaders(vertexShaderString, fragmentShaderString);
+                GPUImageContext.useImageProcessingContext();
+                mFilterProgram = GPUImageContext.sharedImageProcessingContext().programForShaders(vertexShaderString, fragmentShaderString);
                 if (mFilterProgram.initialized) {
                     if (!mFilterProgram.link()) {
                         String progLog = mFilterProgram.programLog;
@@ -136,12 +139,10 @@ public class GPUImageFilter extends GPUImageIO {
                         GLog.a(false, "Filter shader link failed");
                     }
                 }
-
-                GPUImageContext.sharedContext().setActiveShaderProgram(mFilterProgram);
+                GPUImageContext.setActiveShaderProgram(mFilterProgram);
                 mFilterPositionAttribute = mFilterProgram.attributeIndex("position");
                 mFilterTextureCoordinateAttribute = mFilterProgram.attributeIndex("inputTextureCoordinate");
                 mFilterInputTextureUniform = mFilterProgram.uniformIndex("inputImageTexture");
-
                 GLES20.glEnableVertexAttribArray(mFilterPositionAttribute);
                 GLES20.glEnableVertexAttribArray(mFilterTextureCoordinateAttribute);
             }
@@ -216,29 +217,24 @@ public class GPUImageFilter extends GPUImageIO {
             mFirstInputFramebuffer.unlock();
             return;
         }
-
-        GPUImageContext.sharedContext().setActiveShaderProgram(mFilterProgram);
-
-        mOutputFramebuffer = GPUImageContext.sharedContext().framebufferCache.fetchFramebuffer(sizeOfFBO(), outputTextureOptions, false);
+        GPUImageContext.setActiveShaderProgram(mFilterProgram);
+        mOutputFramebuffer = GPUImageContext.sharedFramebufferCache().fetchFramebuffer(sizeOfFBO(), outputTextureOptions, false);
         mOutputFramebuffer.activateFramebuffer();
 
         if (mUsingNextFrameForImageCapture) {
             mOutputFramebuffer.lock();
         }
-
         GLES20.glClearColor(mBackgroundColorRed, mBackgroundColorGreen, mBackgroundColorBlue, mBackgroundColorAlpha);
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
-
         GLES20.glActiveTexture(GLES20.GL_TEXTURE2);
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mFirstInputFramebuffer.texture());
-
-        GLES20.glUniform1f(mFilterInputTextureUniform, 2);
-
-        GLES20.glVertexAttribPointer(mFilterPositionAttribute, 2, GLES20.GL_FLOAT, false, 0, FloatBuffer.wrap(vertices));
-        GLES20.glVertexAttribPointer(mFilterTextureCoordinateAttribute, 2, GLES20.GL_FLOAT, false, 0, FloatBuffer.wrap(textureCoordinates));
+        GLES20.glUniform1i(mFilterInputTextureUniform, 2);
+        mVerticesCoordBuffer = GPUImageOutput.FillNativeBuffer(mVerticesCoordBuffer, vertices);
+        GLES20.glVertexAttribPointer(mFilterPositionAttribute, 2, GLES20.GL_FLOAT, false, 0, mVerticesCoordBuffer);
+        mTextureCoordBuffer = GPUImageOutput.FillNativeBuffer(mTextureCoordBuffer, textureCoordinates);
+        GLES20.glVertexAttribPointer(mFilterTextureCoordinateAttribute, 2, GLES20.GL_FLOAT, false, 0, mTextureCoordBuffer);
 
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
-
         mFirstInputFramebuffer.unlock();
 
         if (mUsingNextFrameForImageCapture) {
@@ -250,7 +246,6 @@ public class GPUImageFilter extends GPUImageIO {
         if (frameProcessingCompletionListener != null) {
             frameProcessingCompletionListener.frameProcessingCompletion(this, frameTime);
         }
-
         for (GPUImageInput currentTarget : mTargets) {
             if (currentTarget != targetToIgnoreForUpdates) {
                 int indexOfObject = mTargets.indexOf(currentTarget);
@@ -294,20 +289,21 @@ public class GPUImageFilter extends GPUImageIO {
     }
 
     public void setInteger(final int intValue, final int uniform, final GLProgram shaderProgram) {
-        GPUImageProcessingQueue.sharedQueue().runAsyn(new Runnable() {
+
+        GDispatchQueue.runAsynchronouslyOnVideoProcessingQueue(new Runnable() {
             @Override
             public void run() {
-                GPUImageContext.sharedContext().setActiveShaderProgram(shaderProgram);
+                GPUImageContext.setActiveShaderProgram(shaderProgram);
                 GLES20.glUniform1i(uniform, intValue);
             }
         });
     }
 
     public void setFloat(final float floatValue, final int uniform, final GLProgram shaderProgram) {
-        GPUImageProcessingQueue.sharedQueue().runAsyn(new Runnable() {
+        GDispatchQueue.runAsynchronouslyOnVideoProcessingQueue(new Runnable() {
             @Override
             public void run() {
-                GPUImageContext.sharedContext().setActiveShaderProgram(shaderProgram);
+                GPUImageContext.setActiveShaderProgram(shaderProgram);
                 GLES20.glUniform1f(uniform, floatValue);
             }
         });
@@ -324,10 +320,10 @@ public class GPUImageFilter extends GPUImageIO {
     }
 
     public void setSize(final GSize sizeValue, final int uniform, final GLProgram shaderProgram) {
-        GPUImageProcessingQueue.sharedQueue().runAsyn(new Runnable() {
+        GDispatchQueue.runAsynchronouslyOnVideoProcessingQueue(new Runnable() {
             @Override
             public void run() {
-                GPUImageContext.sharedContext().setActiveShaderProgram(shaderProgram);
+                GPUImageContext.setActiveShaderProgram(shaderProgram);
                 float sizeArray[] = new float[] {sizeValue.width, sizeValue.height};
                 GLES20.glUniform2fv(uniform, 1, sizeArray, 0);
             }
@@ -340,10 +336,10 @@ public class GPUImageFilter extends GPUImageIO {
     }
 
     public void setFloatArray(final float array[], final int uniform, final GLProgram shaderProgram) {
-        GPUImageProcessingQueue.sharedQueue().runAsyn(new Runnable() {
+        GDispatchQueue.runAsynchronouslyOnVideoProcessingQueue(new Runnable() {
             @Override
             public void run() {
-                GPUImageContext.sharedContext().setActiveShaderProgram(shaderProgram);
+                GPUImageContext.setActiveShaderProgram(shaderProgram);
                 GLES20.glUniform1fv(uniform, array.length, array, 0);
             }
         });
@@ -372,7 +368,7 @@ public class GPUImageFilter extends GPUImageIO {
             GSize rotatedSize = rotatedSize(newSize, textureIndex);
             if (rotatedSize.equals(GSize.Zero)) {
                 mInputTextureSize = rotatedSize;
-            } else if (mInputTextureSize.equals(rotatedSize)) {
+            } else if (!mInputTextureSize.equals(rotatedSize)) {
                 mInputTextureSize = rotatedSize;
             }
         }
@@ -388,7 +384,7 @@ public class GPUImageFilter extends GPUImageIO {
     @Override
     public void setInputFramebuffer(GPUImageFramebuffer newInputFramebuffer, int texIndex) {
         mFirstInputFramebuffer = newInputFramebuffer;
-        mFirstInputFramebuffer.lock();
+        if (mFirstInputFramebuffer != null) mFirstInputFramebuffer.lock();
     }
 
     public static boolean RotationSwapsWidthAndHeight(GPUImageContext.GPUImageRotationMode inputRotation) {
