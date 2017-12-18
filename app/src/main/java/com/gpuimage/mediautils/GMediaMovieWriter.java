@@ -25,7 +25,7 @@ import static android.content.ContentValues.TAG;
  * Created by j on 16/12/2017.
  */
 
-public class GMediaMP4Writer {
+public class GMediaMovieWriter {
 
     // TODO: these ought to be configurable as well
     private static final String MIME_TYPE = "video/avc";    // H.264 Advanced Video Coding
@@ -42,7 +42,7 @@ public class GMediaMP4Writer {
 
     private OutputStream mOutputStream;
 
-    public GMediaMP4Writer(int width, int height, File outputFile, HashMap<String, Object> outputSettings) throws IOException {
+    public GMediaMovieWriter(int width, int height, File outputFile, HashMap<String, Object> outputSettings) throws IOException {
         mBufferInfo = new MediaCodec.BufferInfo();
 
         MediaFormat format = MediaFormat.createVideoFormat(MIME_TYPE, width, height);

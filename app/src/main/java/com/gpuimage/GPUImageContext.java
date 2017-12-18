@@ -1,6 +1,11 @@
 package com.gpuimage;
 
+import android.opengl.EGLContext;
+import android.opengl.EGLSurface;
 import android.opengl.GLES20;
+import android.view.SurfaceView;
+
+import com.gpuimage.eglutils.EglCore;
 
 import java.util.HashMap;
 
@@ -20,26 +25,54 @@ public class GPUImageContext {
         kGPUImageRotate180
     }
 
-    public int maxTextureSize;
-    public int maxTextureUnits;
-    public int maxVaryingVectors;
+    private static int maxTextureSize = -1;
+    private static int maxTextureUnits = -1;
+    private static int maxVaryingVectors = -1;
 
-    private HashMap<String, GLProgram> mShaderProgramCache = new HashMap<>();
+    private EglCore mContext;
+    private EglCore mSharedContext = null;
+    private HashMap<String, GLProgram> mShaderProgramCache;
 
-    public GPUImageFramebufferCache framebufferCache = new GPUImageFramebufferCache();
+    protected GPUImageFramebufferCache mFramebufferCache;
 
     public GLProgram currentShaderProgram = null;
 
-    private static GPUImageContext self = null;
+    private GDispatchQueue mContextQueue;
 
-    public static synchronized GPUImageContext sharedContext() {
-        if (self == null) {
-            self = new GPUImageContext();
+    private static GPUImageContext mSharedImageProcessingContext = null;
+
+    public static synchronized GPUImageContext sharedImageProcessingContext() {
+        if (mSharedImageProcessingContext == null) {
+            mSharedImageProcessingContext = new GPUImageContext();
         }
-        return self;
+        return mSharedImageProcessingContext;
     }
 
-    private GPUImageContext() {}
+    public static GDispatchQueue sharedContextQueue() {
+        return sharedImageProcessingContext().contextQueue();
+    }
+
+    public static void setActiveShaderProgram(GLProgram shaderProgram) {
+        GPUImageContext sharedContext = sharedImageProcessingContext();
+        sharedContext.setContextShaderProgram(shaderProgram);
+    }
+
+    public static GPUImageFramebufferCache sharedFramebufferCache() {
+        return sharedImageProcessingContext().framebufferCache();
+    }
+
+    public static void useImageProcessingContext() {
+        sharedImageProcessingContext().useAsCurrentContext();
+    }
+
+    public static void useImageProcessingContext(EGLSurface eglSurface) {
+        sharedImageProcessingContext().useAsCurrentContext(eglSurface);
+    }
+
+    public GPUImageContext() {
+        mContextQueue = new GDispatchQueue("com.gpuimage.openGLESContextQueue");
+        mShaderProgramCache = new HashMap<>();
+    }
 
     public void getParameters() {
         int param[] = new int[3];
@@ -52,12 +85,31 @@ public class GPUImageContext {
         maxVaryingVectors = param[2];
     }
 
-    public void setActiveShaderProgram(GLProgram shaderProgram) {
-        currentShaderProgram = shaderProgram;
-        shaderProgram.use();
+    public void setContextShaderProgram(GLProgram shaderProgram) {
+        EglCore imageProcessingContext = context();
+        if (!imageProcessingContext.isCurrent()) {
+            imageProcessingContext.makeCurrent();
+            if (currentShaderProgram == shaderProgram) {
+                shaderProgram.use();
+            }
+        }
+        if (currentShaderProgram != shaderProgram) {
+            currentShaderProgram = shaderProgram;
+            shaderProgram.use();
+        }
     }
 
-    public GSize sizeThatFitsWithinATextureForSize(GSize inputSize) {
+    public static int maximumTextureSizeForThisDevice() {
+        if (maxTextureSize < 0) {
+            useImageProcessingContext();
+            int param[] = new int[1];
+            GLES20.glGetIntegerv(GLES20.GL_MAX_TEXTURE_SIZE, param, 0);
+        }
+        return maxTextureSize;
+    }
+
+    public static GSize sizeThatFitsWithinATextureForSize(GSize inputSize) {
+        int maxTextureSize = maximumTextureSizeForThisDevice();
         if (inputSize.width < maxTextureSize && inputSize.height < maxTextureSize) {
             return inputSize;
         }
@@ -86,5 +138,51 @@ public class GPUImageContext {
         return programFromCache;
     }
 
+    private EglCore createContext() {
+        return new EglCore(mSharedContext == null ? null : mSharedContext.getEGLContext(), 0);
+    }
 
+    public GDispatchQueue contextQueue() {
+        return mContextQueue;
+    }
+
+    public GPUImageFramebufferCache framebufferCache() {
+        if (mFramebufferCache == null) {
+            mFramebufferCache = new GPUImageFramebufferCache();
+        }
+        return mFramebufferCache;
+    }
+
+    public void useAsCurrentContext(EGLSurface eglSurface) {
+        EglCore imageProcessingContext = context();
+        if (!imageProcessingContext.isCurrent(eglSurface)) {
+            imageProcessingContext.makeCurrent(eglSurface);
+        }
+    }
+
+    public void useAsCurrentContext() {
+        EglCore imageProcessingContext = context();
+        if (!imageProcessingContext.isCurrent())
+        {
+            imageProcessingContext.makeCurrent();
+        }
+    }
+
+    public EglCore context() {
+        if (mContext == null) {
+            mContext = createContext();
+            mContext.makeCurrent();
+            GLES20.glDisable(GLES20.GL_DEPTH_TEST);
+        }
+        return mContext;
+    }
+
+    public void swapBufferForDisply(EGLSurface eglSurface) {
+        boolean swap = mContext.swapBuffers(eglSurface);
+        if (!swap) GLog.e("swapBufferForDisply error");
+    }
+
+    public void useSharedContext(EglCore sharedContext) {
+        mSharedContext = sharedContext;
+    }
 }

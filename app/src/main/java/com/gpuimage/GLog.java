@@ -16,6 +16,14 @@ import java.io.IOException;
 public class GLog {
     public final static String TAG = "GPUImage";
 
+    public static void w(String str) {
+        Log.w(TAG, str);
+    }
+
+    public static void d(String str) {
+        Log.d(TAG, str);
+    }
+
     public static void v(String str) {
         Log.v(TAG, str);
     }
@@ -42,6 +50,8 @@ public class GLog {
         int error = GLES20.glGetError();
         if (error != GLES20.GL_NO_ERROR) {
             Log.e(TAG, info + " " + getErrorInfo(error));
+        } else {
+            Log.v(TAG, info + " " + getErrorInfo(error));
         }
     }
 

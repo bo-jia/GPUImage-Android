@@ -1,19 +1,16 @@
 package com.gpuimage.sources;
 
-import android.graphics.Bitmap;
 import android.opengl.GLES20;
 
+import com.gpuimage.GDispatchQueue;
 import com.gpuimage.GLProgram;
 import com.gpuimage.GLog;
 import com.gpuimage.GPUImageContext;
 import com.gpuimage.GPUImageFilter;
 import com.gpuimage.GPUImageInput;
-import com.gpuimage.GPUImageProcessingQueue;
 import com.gpuimage.GSize;
-import com.gpuimage.cvutils.CVImageUtils;
 
 import java.nio.ByteBuffer;
-import java.nio.FloatBuffer;
 
 /**
  * Created by j on 4/12/2017.
@@ -53,10 +50,11 @@ public class GPUImageMovie extends GPUImageOutput {
     }
 
     private void yuvConversionSetup() {
-        GPUImageProcessingQueue.sharedQueue().runAsyn(new Runnable() {
+        GDispatchQueue.runSynchronouslyOnVideoProcessingQueue(new Runnable() {
             @Override
             public void run() {
-                mYuvConversionProgram = GPUImageContext.sharedContext().programForShaders(
+                GPUImageContext.useImageProcessingContext();
+                mYuvConversionProgram = GPUImageContext.sharedImageProcessingContext().programForShaders(
                         GPUImageFilter.kGPUImageVertexShaderString,
                         GPUImageColorConversion.kGPUImageYUVFullRangeConversionForLAFragmentShaderString);
                 if (!mYuvConversionProgram.initialized) {
@@ -72,7 +70,7 @@ public class GPUImageMovie extends GPUImageOutput {
                     }
                 }
 
-                GPUImageContext.sharedContext().setActiveShaderProgram(mYuvConversionProgram);
+                GPUImageContext.setActiveShaderProgram(mYuvConversionProgram);
                 mYuvConversionPositionAttribute = mYuvConversionProgram.attributeIndex("position");
                 mYuvConversionTextureCoordinateAttribute = mYuvConversionProgram.attributeIndex("inputTextureCoordinate");
                 mYuvConversionLuminanceTextureUniform = mYuvConversionProgram.uniformIndex("luminanceTexture");
@@ -119,6 +117,7 @@ public class GPUImageMovie extends GPUImageOutput {
                     null);
         }
 
+        copyFrame(yuv, width, height);
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mLuminanceTexture);
         GLES20.glTexSubImage2D(GLES20.GL_TEXTURE_2D, 0, 0, 0, width, height, GLES20.GL_LUMINANCE, GLES20.GL_UNSIGNED_BYTE, ByteBuffer.wrap(mLuminanceData));
 
@@ -136,18 +135,16 @@ public class GPUImageMovie extends GPUImageOutput {
         System.arraycopy(yuv, width * height, mChrominanceData, 0, mChrominanceData.length);
     }
 
+    // millisecond
     public void processMovieFrame(final byte[] yuvData, final int width, final int height, final double frameTime) {
-        copyFrame(yuvData, width, height);
-        GPUImageProcessingQueue.sharedQueue().runAsyn(new Runnable() {
+        GDispatchQueue.runAsynchronouslyOnVideoProcessingQueue(new Runnable() {
             @Override
             public void run() {
                 mProcessingFrameTime = frameTime;
                 mPreferredConversion = GPUImageColorConversion.kColorConversion601FullRangeDefault;
 
                 loadTexture(yuvData, width, height);
-
                 convertYUVToRGBOutput();
-
                 for (GPUImageInput currentTarget : mTargets) {
                     int indexOfObject = mTargets.indexOf(currentTarget);
                     int targetTextureIndex = mTargetTextureIndices.get(indexOfObject);
@@ -174,9 +171,9 @@ public class GPUImageMovie extends GPUImageOutput {
     }
 
     private void convertYUVToRGBOutput() {
-        GPUImageContext.sharedContext().setActiveShaderProgram(mYuvConversionProgram);
+        GPUImageContext.setActiveShaderProgram(mYuvConversionProgram);
 
-        mOutputFramebuffer = GPUImageContext.sharedContext().framebufferCache.fetchFramebuffer(mFrameSize, false);
+        mOutputFramebuffer = GPUImageContext.sharedFramebufferCache().fetchFramebuffer(mFrameSize, false);
         mOutputFramebuffer.activateFramebuffer();
         GLog.checkFramebufferStatus();
 

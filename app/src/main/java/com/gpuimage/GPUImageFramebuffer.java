@@ -31,9 +31,10 @@ public class GPUImageFramebuffer {
 		mMissingFramebuffer = onlyGenerateTexture;
 
 		if (mMissingFramebuffer) {
-			GPUImageProcessingQueue.sharedQueue().runSyn(new Runnable() {
+			GDispatchQueue.runSynchronouslyOnVideoProcessingQueue(new Runnable() {
 				@Override
 				public void run() {
+					GPUImageContext.useImageProcessingContext();
 					generateTexture();
 					mFramebuffer = 0;
 				}
@@ -65,9 +66,10 @@ public class GPUImageFramebuffer {
 	}
 
 	private void generateFramebuffer() {
-		GPUImageProcessingQueue.sharedQueue().runSyn(new Runnable() {
+		GDispatchQueue.runSynchronouslyOnVideoProcessingQueue(new Runnable() {
 			@Override
 			public void run() {
+				GPUImageContext.useImageProcessingContext();
 				int[] tempID = new int[1];
 				GLES20.glGenFramebuffers(1, tempID, 0);
 				mFramebuffer = tempID[0];
@@ -90,9 +92,10 @@ public class GPUImageFramebuffer {
 	}
 
 	public void destroyFramebuffer() {
-		GPUImageProcessingQueue.sharedQueue().runSyn(new Runnable() {
+		GDispatchQueue.runSynchronouslyOnVideoProcessingQueue(new Runnable() {
 			@Override
 			public void run() {
+				GPUImageContext.sharedImageProcessingContext();
 				if (mFramebuffer != 0) {
 					GLES20.glDeleteFramebuffers(1, new int[] {mFramebuffer}, 0);
 					mFramebuffer = 0;
@@ -119,7 +122,7 @@ public class GPUImageFramebuffer {
 		mFramebufferReferenceCount--;
 
 		if (mFramebufferReferenceCount < 1) {
-			GPUImageContext.sharedContext().framebufferCache.returnFrameBufferToCache(this);
+			GPUImageContext.sharedFramebufferCache().returnFrameBufferToCache(this);
 		}
 	}
 
@@ -150,9 +153,10 @@ public class GPUImageFramebuffer {
 
 	public Bitmap newBitmapFromFramebufferContents() {
 		final Bitmap bitmapFromBytes = Bitmap.createBitmap(mSize.width, mSize.height, Bitmap.Config.ARGB_8888);
-		GPUImageProcessingQueue.sharedQueue().runSyn(new Runnable() {
+		GDispatchQueue.runSynchronouslyOnVideoProcessingQueue(new Runnable() {
 			@Override
 			public void run() {
+				GPUImageContext.useImageProcessingContext();
 				byte[] data = new byte[mSize.width * mSize.height * 4];
 				ByteBuffer buffer = ByteBuffer.wrap(data);
 				buffer.order(ByteOrder.LITTLE_ENDIAN);

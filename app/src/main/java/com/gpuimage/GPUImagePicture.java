@@ -31,7 +31,7 @@ public class GPUImagePicture extends GPUImageOutput {
         mPixelSizeOfImage = new GSize(widthOfImage, heightOfImage);
         GSize pixelSizeToUseForTexture = new GSize(mPixelSizeOfImage);
 
-        GSize scaledImageSizeToFitOnGPU = GPUImageContext.sharedContext().sizeThatFitsWithinATextureForSize(mPixelSizeOfImage);
+        GSize scaledImageSizeToFitOnGPU = GPUImageContext.sizeThatFitsWithinATextureForSize(mPixelSizeOfImage);
         if (!scaledImageSizeToFitOnGPU.equals(mPixelSizeOfImage)) {
             mPixelSizeOfImage = new GSize(scaledImageSizeToFitOnGPU);
             pixelSizeToUseForTexture = new GSize(mPixelSizeOfImage);
@@ -45,10 +45,12 @@ public class GPUImagePicture extends GPUImageOutput {
         }
 
         final GSize finalPixelSizeToUseForTexture = pixelSizeToUseForTexture;
-        GPUImageProcessingQueue.sharedQueue().runSyn(new Runnable() {
+        GDispatchQueue.runSynchronouslyOnVideoProcessingQueue(new Runnable() {
             @Override
             public void run() {
-                mOutputFramebuffer = GPUImageContext.sharedContext().framebufferCache.fetchFramebuffer(finalPixelSizeToUseForTexture, true);
+                GPUImageContext.useImageProcessingContext();
+
+                mOutputFramebuffer = GPUImageContext.sharedFramebufferCache().fetchFramebuffer(finalPixelSizeToUseForTexture, true);
                 mOutputFramebuffer.disableReferenceCounting();
 
                 GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mOutputFramebuffer.texture());
@@ -97,7 +99,7 @@ public class GPUImagePicture extends GPUImageOutput {
         mHasProcessedImage = true;
         if (!mImageUpdateSemaphore.tryAcquire()) return false;
 
-        GPUImageProcessingQueue.sharedQueue().runAsyn(new Runnable() {
+        GDispatchQueue.runAsynchronouslyOnVideoProcessingQueue(new Runnable() {
             @Override
             public void run() {
                 for (GPUImageInput currentTarget : mTargets) {

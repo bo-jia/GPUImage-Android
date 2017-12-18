@@ -1,18 +1,19 @@
 package com.gpuimage.outputs;
 
 import android.content.Context;
+import android.graphics.SurfaceTexture;
+import android.opengl.EGLSurface;
 import android.opengl.GLES20;
-import android.opengl.GLSurfaceView;
 import android.util.AttributeSet;
+import android.view.TextureView;
 
+import com.gpuimage.GDispatchQueue;
 import com.gpuimage.GLProgram;
 import com.gpuimage.GLog;
 import com.gpuimage.GPUImageContext;
 import com.gpuimage.GPUImageFilter;
 import com.gpuimage.GPUImageFramebuffer;
 import com.gpuimage.GPUImageInput;
-import com.gpuimage.GPUImageProcessingQueue;
-import com.gpuimage.GPUImageRenderer;
 import com.gpuimage.GSize;
 import com.gpuimage.sources.GPUImageOutput;
 
@@ -22,7 +23,11 @@ import java.nio.ByteBuffer;
  * Created by j on 5/12/2017.
  */
 
-public class GPUImageView extends GLSurfaceView implements GPUImageInput {
+public class GPUImageView extends TextureView implements GPUImageInput, TextureView.SurfaceTextureListener {
+
+    private EGLSurface mEGLSurface;
+    private SurfaceTextureListener mSurfaceTextureListener;
+    private GPUImageFramebuffer mRendererFramebuffer;
 
     public GPUImageView(Context context) {
         super(context);
@@ -30,8 +35,56 @@ public class GPUImageView extends GLSurfaceView implements GPUImageInput {
 
     public GPUImageView(Context context, AttributeSet attrs) {
         super(context, attrs);
-
+        super.setSurfaceTextureListener(this);
         commonInit();
+    }
+
+    @Override
+    public void onSurfaceTextureAvailable(final SurfaceTexture surface, int width, int height) {
+        GDispatchQueue.runSynchronouslyOnVideoProcessingQueue(new Runnable() {
+            @Override
+            public void run() {
+                mEGLSurface = GPUImageContext.sharedImageProcessingContext().context().createWindowSurface(surface);
+                GPUImageContext.sharedImageProcessingContext().useAsCurrentContext(mEGLSurface);
+                presentFramebuffer();
+            }
+        });
+        if (mSurfaceTextureListener != null)
+            mSurfaceTextureListener.onSurfaceTextureAvailable(surface, width, height);
+    }
+
+    @Override
+    public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
+        if (mSurfaceTextureListener != null)
+            mSurfaceTextureListener.onSurfaceTextureSizeChanged(surface, width, height);
+    }
+
+    @Override
+    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+        mViewSize = new GSize(w, h);
+        if (!mViewSize.equals(GSize.Zero)) {
+            recalculateViewGeometry();
+        }
+        super.onSizeChanged(w, h, oldw, oldh);
+    }
+
+    @Override
+    public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
+        GDispatchQueue.runAsynchronouslyOnVideoProcessingQueue(new Runnable() {
+            @Override
+            public void run() {
+                GPUImageContext.sharedImageProcessingContext().context().releaseSurface(mEGLSurface);
+            }
+        });
+        if (mSurfaceTextureListener != null)
+            return mSurfaceTextureListener.onSurfaceTextureDestroyed(surface);
+        return false;
+    }
+
+    @Override
+    public void onSurfaceTextureUpdated(SurfaceTexture surface) {
+        if (mSurfaceTextureListener != null)
+            mSurfaceTextureListener.onSurfaceTextureUpdated(surface);
     }
 
     enum GPUImageFillModeType {
@@ -56,8 +109,6 @@ public class GPUImageView extends GLSurfaceView implements GPUImageInput {
     private float mImageVertices[] = new float[8];
 
     private int mDisplayPositionAttribute, mDisplayTextureCoordinateAttribute, mDisplayInputTextureUniform;
-
-    private GPUImageRenderer mRenderer;
 
     private final static float noRotationTextureCoordinates[] = {
             0.0f, 1.0f,
@@ -117,10 +168,11 @@ public class GPUImageView extends GLSurfaceView implements GPUImageInput {
 
     private void commonInit() {
         mInputRotation = GPUImageContext.GPUImageRotationMode.kGPUImageNoRotation;
-        GPUImageProcessingQueue.sharedQueue().runAsyn(new Runnable() {
+        GDispatchQueue.runSynchronouslyOnVideoProcessingQueue(new Runnable() {
             @Override
             public void run() {
-                mDisplayProgram = GPUImageContext.sharedContext().programForShaders(GPUImageFilter.kGPUImageVertexShaderString, GPUImageFilter.kGPUImagePassthroughFragmentShaderString);
+                GPUImageContext.useImageProcessingContext();
+                mDisplayProgram = GPUImageContext.sharedImageProcessingContext().programForShaders(GPUImageFilter.kGPUImageVertexShaderString, GPUImageFilter.kGPUImagePassthroughFragmentShaderString);
                 if (!mDisplayProgram.initialized) {
                     if (!mDisplayProgram.link()) {
                         String progLog = mDisplayProgram.programLog;
@@ -133,31 +185,24 @@ public class GPUImageView extends GLSurfaceView implements GPUImageInput {
                         GLog.a(false, "Filter shader link failed");
                     }
                 }
-                GPUImageContext.sharedContext().setActiveShaderProgram(mDisplayProgram);
+                GPUImageContext.setActiveShaderProgram(mDisplayProgram);
                 mDisplayPositionAttribute = mDisplayProgram.attributeIndex("position");
                 mDisplayTextureCoordinateAttribute = mDisplayProgram.attributeIndex("inputTextureCoordinate");
                 mDisplayInputTextureUniform = mDisplayProgram.uniformIndex("inputImageTexture");
 
                 GLES20.glEnableVertexAttribArray(mDisplayPositionAttribute);
                 GLES20.glEnableVertexAttribArray(mDisplayTextureCoordinateAttribute);
-
                 setBackgroundColor(0.0f, 0.0f, 0.0f, 1.0f);
                 mFillMode = GPUImageFillModeType.kGPUImageFillModePreserveAspectRatio;
             }
         });
     }
 
-    @Override
-    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
-        mViewSize = new GSize(w, h);
-        recalculateViewGeometry();
-        super.onSizeChanged(w, h, oldw, oldh);
-    }
-
     private void recalculateViewGeometry() {
-        GPUImageProcessingQueue.sharedQueue().runAsyn(new Runnable() {
+        GDispatchQueue.runSynchronouslyOnVideoProcessingQueue(new Runnable() {
             @Override
             public void run() {
+                if (mViewSize.equals(GSize.Zero) || mInputImageSize.equals(GSize.Zero)) return;
                 float heightScaling = 1.f, widthScaling = 1.f;
                 GSize currentViewSize = mViewSize;
                 GSize insectSize = new GSize(mInputImageSize);
@@ -203,7 +248,7 @@ public class GPUImageView extends GLSurfaceView implements GPUImageInput {
 
     @Override
     public void setInputSize(final GSize newSize, int textureIndex) {
-        GPUImageProcessingQueue.sharedQueue().runSyn(new Runnable() {
+        GDispatchQueue.runSynchronouslyOnVideoProcessingQueue(new Runnable() {
             @Override
             public void run() {
                 GSize rotatedSize = new GSize(newSize);
@@ -221,12 +266,19 @@ public class GPUImageView extends GLSurfaceView implements GPUImageInput {
 
     @Override
     public void newFrameReadyAtTime(double frameTime, int texIndex) {
-        GPUImageProcessingQueue.sharedQueue().runSyn(new Runnable() {
+        GDispatchQueue.runSynchronouslyOnVideoProcessingQueue(new Runnable() {
             @Override
             public void run() {
-                GPUImageContext.sharedContext().setActiveShaderProgram(mDisplayProgram);
 
-                mRenderer.rendererBuffer().activateFramebuffer();
+                GPUImageContext.useImageProcessingContext();
+
+                if (mRendererFramebuffer == null || !mRendererFramebuffer.size().equals(mViewSize)) {
+                    if (mRendererFramebuffer != null) mRendererFramebuffer.unlock();
+                    mRendererFramebuffer = GPUImageContext.sharedFramebufferCache().fetchFramebuffer(mViewSize, false);
+                }
+
+                GPUImageContext.setActiveShaderProgram(mDisplayProgram);
+                mRendererFramebuffer.activateFramebuffer();
 
                 GLES20.glClearColor(mBackgroundColorRed, mBackgroundColorGreen, mBackgroundColorBlue, mBackgroundColorAlpha);
                 GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
@@ -243,10 +295,38 @@ public class GPUImageView extends GLSurfaceView implements GPUImageInput {
 
                 mInputFramebufferForDisplay.unlock();
 
-                GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0);
-                GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
+                presentFramebuffer();
             }
         });
+    }
+
+    private void presentFramebuffer() {
+
+        if (mRendererFramebuffer == null) return;
+
+        GPUImageContext.useImageProcessingContext(mEGLSurface);
+
+        GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
+        GLES20.glViewport(0, 0, mViewSize.width, mViewSize.height);
+
+        GLES20.glClearColor(mBackgroundColorRed, mBackgroundColorGreen, mBackgroundColorBlue, mBackgroundColorAlpha);
+        GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
+
+        GLES20.glActiveTexture(GLES20.GL_TEXTURE4);
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mRendererFramebuffer.texture());
+        GLES20.glUniform1i(mDisplayInputTextureUniform, 4);
+
+        mVerticesCoordBuffer = GPUImageOutput.FillNativeBuffer(mVerticesCoordBuffer, GPUImageFilter.imageVertices);
+        GLES20.glVertexAttribPointer(mDisplayPositionAttribute, 2, GLES20.GL_FLOAT, false,0 , mVerticesCoordBuffer);
+        mTextureCoordBuffer = GPUImageOutput.FillNativeBuffer(mTextureCoordBuffer, GPUImageFilter.textureCoordinatesForRotation(mInputRotation));
+        GLES20.glVertexAttribPointer(mDisplayTextureCoordinateAttribute, 2, GLES20.GL_FLOAT, false, 0, mTextureCoordBuffer);
+
+        GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
+
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0);
+        GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
+
+        GPUImageContext.sharedImageProcessingContext().swapBufferForDisply(mEGLSurface);
     }
 
     @Override
@@ -307,15 +387,6 @@ public class GPUImageView extends GLSurfaceView implements GPUImageInput {
         recalculateViewGeometry();
     }
 
-    public void setGPUImageRenderer(GPUImageRenderer renderer) {
-        mRenderer = renderer;
-        setEGLContextClientVersion(2);
-        setRenderer(renderer);
-        setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
-        setDebugFlags(GLSurfaceView.DEBUG_CHECK_GL_ERROR | GLSurfaceView.DEBUG_LOG_GL_CALLS);
-        setPreserveEGLContextOnPause(true);
-    }
-
     public static float[] textureCoordinatesForRotation(GPUImageContext.GPUImageRotationMode rotationMode) {
         switch(rotationMode)
         {
@@ -329,5 +400,10 @@ public class GPUImageView extends GLSurfaceView implements GPUImageInput {
             case kGPUImageRotate180: return rotate180TextureCoordinates;
         }
         return noRotationTextureCoordinates;
+    }
+
+    @Override
+    public void setSurfaceTextureListener(SurfaceTextureListener listener) {
+        mSurfaceTextureListener = listener;
     }
 }

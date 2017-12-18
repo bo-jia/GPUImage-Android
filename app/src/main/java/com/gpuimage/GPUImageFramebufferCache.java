@@ -28,7 +28,7 @@ public class GPUImageFramebufferCache {
 
 	public GPUImageFramebuffer fetchFramebuffer(final GSize framebufferSize, final GPUTextureOptions textureOptions, final boolean onlyTexture) {
 		final GPUImageFramebuffer[] framebufferFromCache = {null};
-    	GPUImageProcessingQueue.sharedQueue().runSyn(new Runnable() {
+    	GDispatchQueue.runSynchronouslyOnVideoProcessingQueue(new Runnable() {
 			@Override
 			public void run() {
 				String lookupHash = hash(framebufferSize,	textureOptions, onlyTexture);
@@ -71,7 +71,7 @@ public class GPUImageFramebufferCache {
 
     public void returnFrameBufferToCache(final GPUImageFramebuffer framebuffer) {
     	framebuffer.clearAllLocks();
-    	GPUImageProcessingQueue.sharedQueue().runAsyn(new Runnable() {
+    	GDispatchQueue.runAsynchronouslyOnVideoProcessingQueue(new Runnable() {
 			@Override
 			public void run() {
 				GSize framebufferSize = framebuffer.size();
@@ -90,7 +90,7 @@ public class GPUImageFramebufferCache {
     }
     
     public void purgeAllUnassignedFrameBuffers() {
-    	GPUImageProcessingQueue.sharedQueue().runAsyn(new Runnable() {
+    	GDispatchQueue.runAsynchronouslyOnVideoProcessingQueue(new Runnable() {
 			@Override
 			public void run() {
 				for (Entry<String, GPUImageFramebuffer> entry : mFramebufferCache.entrySet()) {

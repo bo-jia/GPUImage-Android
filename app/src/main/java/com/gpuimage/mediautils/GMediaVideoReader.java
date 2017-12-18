@@ -12,6 +12,7 @@ import com.gpuimage.cvutils.CVImageUtils;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import com.gpuimage.GLog;
 
 /**
  * Created by j on 17/11/2017.
@@ -37,19 +38,19 @@ public class GMediaVideoReader {
     private MediaCodec.BufferInfo mInfo = new MediaCodec.BufferInfo();
 
     public boolean loadMP4(String path) {
-        Log.v(TAG, "load mp4: " + path);
+        GLog.i("load mp4: " + path);
         mMediaExtractor = new MediaExtractor();
         try {
             mMediaExtractor.setDataSource(path);
         } catch (IOException e) {
-            Log.e(TAG, "invalid mp4 path: " + path);
+            GLog.e("invalid mp4 path: " + path);
             e.printStackTrace();
             return false;
         }
 
         int videoTrackIndex = getVideoTrack(mMediaExtractor);
         if ( videoTrackIndex < 0 ) {
-            Log.e(TAG, "no video track found!");
+            GLog.e("no video track found!");
             return false;
         }
 
@@ -57,22 +58,20 @@ public class GMediaVideoReader {
 
         mMediaFormat = mMediaExtractor.getTrackFormat(videoTrackIndex);
         mDuration = mMediaFormat.getLong(MediaFormat.KEY_DURATION);
-
+        mFrameWidth = mMediaFormat.getInteger(MediaFormat.KEY_WIDTH);
+        mFrameHeight = mMediaFormat.getInteger(MediaFormat.KEY_HEIGHT);
+        GLog.i("media format " + mMediaFormat);
         String mime = mMediaFormat.getString(MediaFormat.KEY_MIME);
         try {
             mMediaCodec = MediaCodec.createDecoderByType(mime);
         } catch (IOException e) {
-            Log.e(TAG, "create decoder error, mime: " + mime);
+            GLog.e("create decoder error, mime: " + mime);
             e.printStackTrace();
             return false;
         }
 
         mMediaFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Flexible);
         mMediaCodec.configure(mMediaFormat, null, null, 0);
-        mMediaCodec.start();
-
-        mInputBuffers = mMediaCodec.getInputBuffers();
-        mOutputBuffers = mMediaCodec.getOutputBuffers();
 
         return true;
     }
@@ -83,7 +82,7 @@ public class GMediaVideoReader {
             MediaFormat format = extractor.getTrackFormat(i);
             String mime = format.getString(MediaFormat.KEY_MIME);
             if (mime.startsWith("video/")) {
-                Log.i(TAG, "video track " + i + " (" + mime + "): " + format);
+                GLog.i("video track " + i + " (" + mime + "): " + format);
                 return i;
             }
         }
@@ -103,7 +102,7 @@ public class GMediaVideoReader {
                 if (mMediaExtractor.advance() && sampleSize > 0) {
                     mMediaCodec.queueInputBuffer(inputIndex, 0, sampleSize, mMediaExtractor.getSampleTime(), 0);
                 } else {
-                    Log.d(TAG, "InputBuffer BUFFER_FLAG_END_OF_STREAM");
+                    GLog.i("InputBuffer BUFFER_FLAG_END_OF_STREAM");
                     mMediaCodec.queueInputBuffer(inputIndex, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
                     return false;
                 }
@@ -123,7 +122,7 @@ public class GMediaVideoReader {
                 default:
                 {
                     if (mInfo.size == 0) {
-                        Log.i(TAG, "size of decoded frame is 0");
+                        GLog.i("size of decoded frame is 0");
                     }
                     int outputIndex = outputStatus;
                     ByteBuffer buffer = mOutputBuffers[outputIndex];
@@ -172,8 +171,8 @@ public class GMediaVideoReader {
             cropBottom = mMediaFormat.getInteger("crop-bottom");
         }
 
-        Log.d(TAG, "color format:" + colorFormat + ", width:" + frameWidth + " height:" + frameHeight);
-        Log.d(TAG, "stride:" + stride + " slice height:" + sliceHeight + " crop left:" + cropLeft + " right:" + cropRight + " top:" + cropTop + " bottom:" + cropBottom);
+//        Log.d(TAG, "color format:" + colorFormat + ", width:" + frameWidth + " height:" + frameHeight);
+//        Log.d(TAG, "stride:" + stride + " slice height:" + sliceHeight + " crop left:" + cropLeft + " right:" + cropRight + " top:" + cropTop + " bottom:" + cropBottom);
 
         int rw = cropRight - cropLeft + 1;
         int rh = cropBottom - cropTop + 1;
@@ -186,6 +185,16 @@ public class GMediaVideoReader {
 
         mFrameWidth  = rw;
         mFrameHeight = rh;
+    }
+
+    public void stop() {
+        mMediaCodec.stop();
+    }
+
+    public void start() {
+        mMediaCodec.start();
+        mInputBuffers = mMediaCodec.getInputBuffers();
+        mOutputBuffers = mMediaCodec.getOutputBuffers();
     }
 
     public void close() {
@@ -206,7 +215,7 @@ public class GMediaVideoReader {
         return mNV12;
     }
 
-    public double getTimestamp() { return mTimestamp; }
+    public double getTimestamp() { return mTimestamp / 1e3; }
 
     public Bitmap getFrame() {
 

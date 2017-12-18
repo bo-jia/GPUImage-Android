@@ -2,10 +2,10 @@ package com.gpuimage.sources;
 
 import android.graphics.Bitmap;
 
+import com.gpuimage.GDispatchQueue;
 import com.gpuimage.GPUImageContext;
 import com.gpuimage.GPUImageFramebuffer;
 import com.gpuimage.GPUImageInput;
-import com.gpuimage.GPUImageProcessingQueue;
 import com.gpuimage.GPUTextureOptions;
 import com.gpuimage.GSize;
 
@@ -80,7 +80,7 @@ public class GPUImageOutput {
 
 		cachedMaximumOutputSize = GSize.newZero();
 
-		GPUImageProcessingQueue.sharedQueue().runAsyn(new Runnable() {
+		GDispatchQueue.runSynchronouslyOnVideoProcessingQueue(new Runnable() {
 			@Override
 			public void run() {
 				setInputFramebuffer(newTarget, textureLocation);
@@ -102,7 +102,7 @@ public class GPUImageOutput {
 		final int indexOfObject = mTargets.indexOf(targetToRemove);
 		final int textureIndexOfTarget = mTargetTextureIndices.indexOf(targetToRemove);
 
-		GPUImageProcessingQueue.sharedQueue().runSyn(new Runnable() {
+		GDispatchQueue.runSynchronouslyOnVideoProcessingQueue(new Runnable() {
 			@Override
 			public void run() {
 				targetToRemove.setInputSize(GSize.newZero(), textureIndexOfTarget);
@@ -117,7 +117,7 @@ public class GPUImageOutput {
 	
 	public void removeAllTargets() {
 		cachedMaximumOutputSize = GSize.newZero();
-		GPUImageProcessingQueue.sharedQueue().runSyn(new Runnable() {
+		GDispatchQueue.runSynchronouslyOnVideoProcessingQueue(new Runnable() {
 			@Override
 			public void run() {
 				for (GPUImageInput targetToRemove : mTargets) {
