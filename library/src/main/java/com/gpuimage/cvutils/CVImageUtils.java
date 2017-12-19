@@ -6,6 +6,7 @@ package com.gpuimage.cvutils;
 
 public class CVImageUtils {
     static {
+        System.loadLibrary("opencv_java3");
         System.loadLibrary("cvimageutils");
     }
     // src data is copied from bitmap

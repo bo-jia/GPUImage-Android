@@ -1,6 +1,9 @@
 apply plugin: 'com.android.application'
 
 android {
+    compileSdkVersion rootProject.ext.compileSdkVersion
+    buildToolsVersion rootProject.ext.buildToolsVersion
+
     defaultConfig {
         applicationId "com.yoyo.gpuimage"
 
@@ -12,7 +15,6 @@ android {
         versionCode 1
         versionName "1.0"
     }
-
     buildTypes {
         release {
             minifyEnabled false
@@ -25,7 +27,6 @@ android {
             jniLibs.srcDir 'src/main/libs'
         }
     }
-
     defaultConfig {
         ndk {
             // 设置支持的SO库架构
@@ -36,8 +37,7 @@ android {
 
 dependencies {
     api project(':library')
-
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
     implementation 'com.android.support:appcompat-v7:25.0.0'
     implementation 'com.android.support.constraint:constraint-layout:1.0.2'
 }
