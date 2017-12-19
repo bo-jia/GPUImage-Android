@@ -1,9 +1,7 @@
-apply plugin: 'com.android.application'
+apply plugin: 'com.android.library'
 
 android {
     defaultConfig {
-        applicationId "com.yoyo.gpuimage"
-
         compileSdkVersion rootProject.ext.compileSdkVersion
         buildToolsVersion rootProject.ext.buildToolsVersion
         minSdkVersion rootProject.ext.minSdkVersion
@@ -19,25 +17,9 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
-    sourceSets {
-        main {
-            jni.srcDirs = []
-            jniLibs.srcDir 'src/main/libs'
-        }
-    }
-
-    defaultConfig {
-        ndk {
-            // 设置支持的SO库架构
-            abiFilters 'armeabi-v7a' //'armeabi', 'x86', 'armeabi-v7a', 'x86_64', 'arm64-v8a'
-        }
-    }
 }
 
 dependencies {
-    api project(':library')
-
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'com.android.support:appcompat-v7:25.0.0'
-    implementation 'com.android.support.constraint:constraint-layout:1.0.2'
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
 }

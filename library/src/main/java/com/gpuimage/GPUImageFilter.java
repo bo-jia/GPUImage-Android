@@ -2,13 +2,9 @@ package com.gpuimage;
 
 import android.graphics.Bitmap;
 import android.opengl.GLES20;
-import android.util.Size;
 
 import com.gpuimage.sources.GPUImageOutput;
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.FloatBuffer;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 

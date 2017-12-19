@@ -1,9 +1,9 @@
 package com.test;
 
 import android.graphics.Bitmap;
+import android.os.Bundle;
 import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.View;
 import android.widget.Button;
@@ -11,7 +11,6 @@ import android.widget.Button;
 import com.gpuimage.GPUImageFilter;
 import com.gpuimage.R;
 import com.gpuimage.mediautils.GMediaPlayer;
-import com.gpuimage.mediautils.GMediaVideoReader;
 import com.gpuimage.outputs.GPUImageMovieWriter;
 import com.gpuimage.outputs.GPUImageView;
 import com.gpuimage.sources.GPUImageMovie;
@@ -22,7 +21,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import com.gpuimage.GLog;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -34,7 +32,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         
-        final GPUImageView glSurfaceView = findViewById(R.id.iv_test);
+        final GPUImageView glSurfaceView = (GPUImageView) findViewById(R.id.iv_test);
 
 
         mMovie = new GPUImageMovie();
