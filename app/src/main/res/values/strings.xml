@@ -1,3 +1,16 @@
 <resources>
     <string name="app_name">GPUImage</string>
+
+    <string name="button_allow">Allow</string>
+    <string name="button_deny">Deny</string>
+
+    <string name="show_camera">Show camera preview</string>
+    <string name="show_contacts">Show and add contacts</string>
+    <string name="permission_contacts_denied">Contacts permissions were denied. Please consider granting it in order to access the camera!</string>
+    <string name="permission_contacts_never_ask_again">Contacts permissions were denied with never ask again.</string>
+
+    <string name="permission_camera_rationale">Camera permission is needed to show the camera preview.</string>
+    <string name="permission_contacts_rationale">Contacts permissions are needed to demonstrate access to the contacts database.</string>
+    <string name="permission_camera_denied">Camera permission was denied. Please consider granting it in order to access the camera!</string>
+    <string name="permission_camera_never_ask_again">Camera permission was denied with never ask again.</string>
 </resources>
