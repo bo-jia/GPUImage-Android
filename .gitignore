@@ -9,3 +9,4 @@
 .externalNativeBuild
 .gitattributes
 .idea
+library/src/main/obj
