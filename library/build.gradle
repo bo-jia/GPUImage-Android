@@ -15,13 +15,6 @@ android {
         }
     }
 
-//    sourceSets {
-//        main {
-//            jni.srcDirs = []
-//            jniLibs.srcDir 'src/main/libs'
-//        }
-//    }
-
     buildTypes {
         release {
             minifyEnabled false
@@ -33,7 +26,6 @@ android {
         ndkBuild {
             path 'src/main/jni/Android.mk'
         }
-
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
@@ -42,6 +34,5 @@ android {
 }
 
 dependencies {
-    implementation 'com.android.support:appcompat-v7:25.0.0'
     implementation fileTree(include: ['*.jar'], dir: 'libs')
 }

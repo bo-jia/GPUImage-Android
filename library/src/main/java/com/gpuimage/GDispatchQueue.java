@@ -2,11 +2,6 @@ package com.gpuimage;
 
 import android.os.Handler;
 import android.os.HandlerThread;
-import android.os.Looper;
-import android.os.SystemClock;
-import android.support.annotation.NonNull;
-
-import java.util.concurrent.Semaphore;
 
 /**
  * Created by j on 17/12/2017.
@@ -30,11 +25,11 @@ public class GDispatchQueue {
         mThread.quit();
     }
 
-    public void dispatch(@NonNull Runnable runnable) {
+    public void dispatch(Runnable runnable) {
         mHandler.post(runnable);
     }
 
-    public void dispatchSyn(@NonNull Runnable runnable) {
+    public void dispatchSyn(Runnable runnable) {
         new BlockingRunnable(runnable).postAndWait(mHandler);
     }
 
@@ -75,7 +70,7 @@ public class GDispatchQueue {
         }
     }
 
-    public static void runAsynchronouslyOnVideoProcessingQueue(@NonNull Runnable runnable) {
+    public static void runAsynchronouslyOnVideoProcessingQueue(Runnable runnable) {
         GDispatchQueue videoProcessingQueue = GPUImageContext.sharedContextQueue();
         if (Thread.currentThread().getId() == videoProcessingQueue.getThreadId()) {
             runnable.run();
@@ -84,7 +79,7 @@ public class GDispatchQueue {
         }
     }
 
-    public static void runSynchronouslyOnVideoProcessingQueue(@NonNull Runnable runnable) {
+    public static void runSynchronouslyOnVideoProcessingQueue(Runnable runnable) {
         GDispatchQueue videoProcessingQueue = GPUImageContext.sharedContextQueue();
         if (Thread.currentThread().getId() == videoProcessingQueue.getThreadId()) {
             runnable.run();
@@ -93,7 +88,7 @@ public class GDispatchQueue {
         }
     }
 
-    public static void runAsynchronouslyOnContextQueue(@NonNull GPUImageContext context, @NonNull Runnable runnable) {
+    public static void runAsynchronouslyOnContextQueue(GPUImageContext context, Runnable runnable) {
         GDispatchQueue videoProcessingQueue = context.contextQueue();
         if (Thread.currentThread().getId() == videoProcessingQueue.getThreadId()) {
             runnable.run();
@@ -102,7 +97,7 @@ public class GDispatchQueue {
         }
     }
 
-    public static void runSynchronouslyOnContextQueue(@NonNull GPUImageContext context, @NonNull Runnable runnable) {
+    public static void runSynchronouslyOnContextQueue(GPUImageContext context, Runnable runnable) {
         GDispatchQueue videoProcessingQueue = context.contextQueue();
         if (Thread.currentThread().getId() == videoProcessingQueue.getThreadId()) {
             runnable.run();
