@@ -42,13 +42,15 @@ dependencies {
     api project(':library')
     compile 'com.jakewharton:butterknife:8.4.0'
     annotationProcessor 'com.jakewharton:butterknife-compiler:8.4.0'
-    //leak
+
+    api 'commons-io:commons-io:2.5'
+
     debugCompile 'com.squareup.leakcanary:leakcanary-android:1.5.4'
     releaseCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.5.4'
     testCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.5.4'
 
     api 'com.qmuiteam:qmui:1.0.5'
-    implementation 'com.android.support:appcompat-v7:27.0.2'
+    implementation 'com.android.support:appcompat-v7:27.0.1'
     implementation 'com.android.support.constraint:constraint-layout:1.0.2'
     implementation ('com.github.hotchemi:permissionsdispatcher:3.0.1') {
         // if you don't use android.app.Fragment you can exclude support for them

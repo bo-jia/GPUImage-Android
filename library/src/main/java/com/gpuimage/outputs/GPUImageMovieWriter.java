@@ -281,7 +281,9 @@ public class GPUImageMovieWriter implements GPUImageInput {
                 GDispatchQueue.runSynchronouslyOnContextQueue(mMovieWriterContext, new Runnable() {
                     @Override
                     public void run() {
-                        if (mWriter != null) mWriter.drainEncoder(true);
+                        if (mWriter != null) {
+                            mWriter.drainEncoder(true);
+                        }
                         cancelRecording();
                         if (handler != null) {
                             GDispatchQueue.runAsynchronouslyOnContextQueue(mMovieWriterContext, handler);
@@ -316,8 +318,12 @@ public class GPUImageMovieWriter implements GPUImageInput {
     }
 
     public double duration() {
-        if (mStartTime < 0) return 0;
-        if (mPreviousFrameTime > 0) return mPreviousFrameTime - mStartTime;
+        if (mStartTime < 0) {
+            return 0;
+        }
+        if (mPreviousFrameTime > 0) {
+            return mPreviousFrameTime - mStartTime;
+        }
         return 0;
     }
 
