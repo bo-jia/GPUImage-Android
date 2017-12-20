@@ -1,50 +1,37 @@
-package com.gpuimage.appdemo.fragment;
+package com.gpuimage.appdemo.fragment.testcase;
 
 import android.os.Environment;
-import android.view.LayoutInflater;
 import android.view.View;
-import android.widget.Button;
 
 import com.gpuimage.GPUImageFilter;
 import com.gpuimage.appdemo.R;
-import com.gpuimage.appdemo.base.BaseFragment;
-import com.gpuimage.appdemo.model.QDItemDescription;
+import com.gpuimage.appdemo.fragment.BaseSingleGPUImageViewFragment;
+import com.gpuimage.appdemo.model.ItemDescription;
 import com.gpuimage.mediautils.GMediaPlayer;
 import com.gpuimage.outputs.GPUImageMovieWriter;
-import com.gpuimage.outputs.GPUImageView;
 import com.gpuimage.sources.GPUImageMovie;
-import com.qmuiteam.qmui.widget.QMUITopBar;
-
-import butterknife.BindView;
-import butterknife.ButterKnife;
 
 /**
  * @ClassName
  * @Description
  * @Author danny
- * @Date 2017/12/20 11:26
+ * @Date 2017/12/20 15:15
  */
-public class TestMovieReaderFragment extends BaseFragment {
-
-    public static String haha = "adf";
-    @BindView(R.id.topbar) QMUITopBar mTopBar;
-    @BindView(R.id.bt_test) Button bt;
-    @BindView(R.id.iv_test) GPUImageView glSurfaceView;
-
+public class TestMovieReaderFragment extends BaseSingleGPUImageViewFragment {
     private GPUImageMovie mMovie;
     private GPUImageMovieWriter mMovieWriter;
 
-    public static QDItemDescription mQDItemDescription = new QDItemDescription(TestMovieReaderFragment.class,
-            "TestMovieReaderFragment", R.mipmap.icon_tabbar_lab);
+    public static ItemDescription mItemDescription = new ItemDescription(TestMovieReaderFragment.class,
+            "TestMovieReader", R.mipmap.icon_tabbar_lab);
 
     @Override
-    protected View onCreateView() {
-        View root = LayoutInflater.from(getActivity()).inflate(R.layout.fragment_single_gpuimageview, null);
-        ButterKnife.bind(this, root);
-        initTopBar();
+    protected ItemDescription getQDItemDescription() {
+        return mItemDescription;
+    }
 
+    @Override
+    protected void onCreateViewCompleted() {
         testCode();
-        return root;
     }
 
     private void testCode() {
@@ -55,7 +42,7 @@ public class TestMovieReaderFragment extends BaseFragment {
 
         GPUImageFilter filter = new GPUImageFilter();
         mMovie.addTarget(filter);
-        filter.addTarget(glSurfaceView);
+        filter.addTarget(mGPUImageView);
 
 
         String path = Environment.getExternalStorageDirectory().getAbsolutePath() + "/test.avi";
@@ -75,7 +62,7 @@ public class TestMovieReaderFragment extends BaseFragment {
         mMovieWriter = new GPUImageMovieWriter(videoReader.getFrameWidth(), videoReader.getFrameHeight(), outputPath);
         mMovie.addTarget(mMovieWriter);
 */
-        bt.setOnClickListener(new View.OnClickListener() {
+        mTestBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 String path = Environment.getExternalStorageDirectory().getAbsolutePath() + "/final_video.mp4";
@@ -121,15 +108,5 @@ public class TestMovieReaderFragment extends BaseFragment {
 */
             }
         });
-    }
-
-    private void initTopBar() {
-        mTopBar.addLeftBackImageButton().setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                popBackStack();
-            }
-        });
-        mTopBar.setTitle(TestMovieReaderFragment.class.getSimpleName());
     }
 }

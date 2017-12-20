@@ -23,7 +23,7 @@ import butterknife.ButterKnife;
  *
  * Created by Kayo on 2016/11/18.
  */
-public class QDAboutFragment extends BaseFragment {
+public class AboutFragment extends BaseFragment {
 
     @BindView(R.id.topbar)
     QMUITopBar mTopBar;
@@ -46,7 +46,7 @@ public class QDAboutFragment extends BaseFragment {
                 .addItemView(mAboutGroupListView.createItemView(getResources().getString(R.string.about_item_homepage)), new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        String url = "http://qmuiteam.com/android/page/index.html";
+                        String url = "www.philm.cc";
                         Intent intent = new Intent(Intent.ACTION_VIEW);
                         intent.setData(Uri.parse(url));
                         startActivity(intent);
@@ -55,7 +55,7 @@ public class QDAboutFragment extends BaseFragment {
                 .addItemView(mAboutGroupListView.createItemView(getResources().getString(R.string.about_item_github)), new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        String url = "https://github.com/QMUI/QMUI_Android";
+                        String url = "https://github.com/wooacat/GPUImage-Android";
                         Intent intent = new Intent(Intent.ACTION_VIEW);
                         intent.setData(Uri.parse(url));
                         startActivity(intent);

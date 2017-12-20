@@ -2,7 +2,7 @@ package com.gpuimage.appdemo.fragment.home;
 
 import android.content.Context;
 
-import com.gpuimage.appdemo.QDDataManager;
+import com.gpuimage.appdemo.HomeDataManager;
 
 /**
  * @author cginechen
@@ -22,6 +22,6 @@ public class HomeLabController extends HomeController {
 
     @Override
     protected ItemAdapter getItemAdapter() {
-        return new ItemAdapter(getContext(), QDDataManager.getInstance().getLabDescriptions());
+        return new ItemAdapter(getContext(), HomeDataManager.getInstance().getLabDescriptions());
     }
 }

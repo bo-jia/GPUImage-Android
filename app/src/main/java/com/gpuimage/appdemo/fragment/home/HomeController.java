@@ -12,8 +12,8 @@ import com.gpuimage.appdemo.base.BaseFragment;
 import com.gpuimage.appdemo.base.BaseRecyclerAdapter;
 import com.gpuimage.appdemo.base.RecyclerViewHolder;
 import com.gpuimage.appdemo.decorator.GridDividerItemDecoration;
-import com.gpuimage.appdemo.fragment.QDAboutFragment;
-import com.gpuimage.appdemo.model.QDItemDescription;
+import com.gpuimage.appdemo.fragment.AboutFragment;
+import com.gpuimage.appdemo.model.ItemDescription;
 import com.qmuiteam.qmui.widget.QMUITopBar;
 
 import java.util.List;
@@ -60,7 +60,7 @@ public abstract class HomeController extends FrameLayout {
         mTopBar.addRightImageButton(R.mipmap.icon_topbar_about, R.id.topbar_right_about_button).setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
-                QDAboutFragment fragment = new QDAboutFragment();
+                AboutFragment fragment = new AboutFragment();
                 startFragment(fragment);
             }
         });
@@ -71,7 +71,7 @@ public abstract class HomeController extends FrameLayout {
         mItemAdapter.setOnItemClickListener(new BaseRecyclerAdapter.OnItemClickListener() {
             @Override
             public void onItemClick(View itemView, int pos) {
-                QDItemDescription item = mItemAdapter.getItem(pos);
+                ItemDescription item = mItemAdapter.getItem(pos);
                 try {
                     BaseFragment fragment = item.getDemoClass().newInstance();
                     startFragment(fragment);
@@ -92,9 +92,9 @@ public abstract class HomeController extends FrameLayout {
         void startFragment(BaseFragment fragment);
     }
 
-    static class ItemAdapter extends BaseRecyclerAdapter<QDItemDescription> {
+    static class ItemAdapter extends BaseRecyclerAdapter<ItemDescription> {
 
-        public ItemAdapter(Context ctx, List<QDItemDescription> data) {
+        public ItemAdapter(Context ctx, List<ItemDescription> data) {
             super(ctx, data);
         }
 
@@ -104,7 +104,7 @@ public abstract class HomeController extends FrameLayout {
         }
 
         @Override
-        public void bindData(RecyclerViewHolder holder, int position, QDItemDescription item) {
+        public void bindData(RecyclerViewHolder holder, int position, ItemDescription item) {
             holder.getTextView(R.id.item_name).setText(item.getName());
             if (item.getIconRes() != 0) {
                 holder.getImageView(R.id.item_icon).setImageResource(item.getIconRes());

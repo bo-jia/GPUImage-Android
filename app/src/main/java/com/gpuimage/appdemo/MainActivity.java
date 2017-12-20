@@ -28,8 +28,6 @@ public class MainActivity extends BaseFragmentActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        //setContentView(R.layout.activity_main);
-
         if (savedInstanceState == null) {
             BaseFragment fragment = new HomeFragment();
 

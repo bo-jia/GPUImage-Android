@@ -2,7 +2,7 @@ package com.gpuimage.appdemo.fragment.home;
 
 import android.content.Context;
 
-import com.gpuimage.appdemo.QDDataManager;
+import com.gpuimage.appdemo.HomeDataManager;
 
 
 /** 主界面，关于 QMUI Util 部分的展示。
@@ -22,6 +22,6 @@ public class HomeUtilController extends HomeController {
 
     @Override
     protected ItemAdapter getItemAdapter() {
-        return new ItemAdapter(getContext(), QDDataManager.getInstance().getUtilDescriptions());
+        return new ItemAdapter(getContext(), HomeDataManager.getInstance().getUtilDescriptions());
     }
 }
