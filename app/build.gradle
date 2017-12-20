@@ -29,7 +29,6 @@ android {
     }
     defaultConfig {
         ndk {
-            // 设置支持的SO库架构
             abiFilters 'armeabi-v7a' //'armeabi', 'x86', 'armeabi-v7a', 'x86_64', 'arm64-v8a'
         }
     }
@@ -41,12 +40,20 @@ android {
 
 dependencies {
     api project(':library')
-    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    compile 'com.jakewharton:butterknife:8.4.0'
+    annotationProcessor 'com.jakewharton:butterknife-compiler:8.4.0'
+    //leak
+    debugCompile 'com.squareup.leakcanary:leakcanary-android:1.5'
+    releaseCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.5'
+    testCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.5'
+
+    api 'com.qmuiteam:qmui:1.0.4'
     implementation 'com.android.support:appcompat-v7:25.0.0'
     implementation 'com.android.support.constraint:constraint-layout:1.0.2'
-    compile('com.github.hotchemi:permissionsdispatcher:3.0.1') {
+    implementation ('com.github.hotchemi:permissionsdispatcher:3.0.1') {
         // if you don't use android.app.Fragment you can exclude support for them
         exclude module: "support-v13"
     }
     annotationProcessor "com.github.hotchemi:permissionsdispatcher-processor:3.0.1"
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
 }
