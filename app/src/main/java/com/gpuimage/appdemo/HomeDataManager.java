@@ -2,6 +2,7 @@ package com.gpuimage.appdemo;
 
 
 import com.gpuimage.appdemo.base.BaseFragment;
+import com.gpuimage.appdemo.fragment.testcase.TestCameraReaderFragment;
 import com.gpuimage.appdemo.fragment.testcase.TestMovieReaderFragment;
 import com.gpuimage.appdemo.fragment.testcase.TestMovieWriterFragment;
 import com.gpuimage.appdemo.model.ItemDescription;
@@ -41,7 +42,7 @@ public class HomeDataManager {
         mComponentsNames = new HashMap<>();
         mComponentsNames.put(TestMovieReaderFragment.class, TestMovieReaderFragment.mItemDescription);
         mComponentsNames.put(TestMovieWriterFragment.class, TestMovieWriterFragment.mItemDescription);
-
+        mComponentsNames.put(TestCameraReaderFragment.class, TestCameraReaderFragment.mItemDescription);
     }
 
     /**

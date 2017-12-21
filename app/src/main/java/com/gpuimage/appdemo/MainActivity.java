@@ -44,7 +44,7 @@ public class MainActivity extends BaseFragmentActivity {
             Manifest.permission.WRITE_EXTERNAL_STORAGE,
             Manifest.permission.READ_EXTERNAL_STORAGE
     })
-    void showCamera() {
+    public void showCamera() {
         //showCamera View
     }
 
