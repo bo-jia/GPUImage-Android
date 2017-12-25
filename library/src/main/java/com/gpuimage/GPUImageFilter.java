@@ -25,14 +25,14 @@ public class GPUImageFilter extends GPUImageIO {
     public static final String kGPUImagePassthroughFragmentShaderString = "" +
         "varying highp vec2 textureCoordinate;\n" +
         " \n" +
-        "uniform sampler2D inputImageTexture;\n" +
+            "uniform sampler2D inputImageTexture;\n" +
         " \n" +
         "void main()\n" +
         "{\n" +
         "     gl_FragColor = texture2D(inputImageTexture, textureCoordinate);\n" +
         "}";
 
-    private final static float noRotationTextureCoordinates[] = {
+    public final static float noRotationTextureCoordinates[] = {
             0.0f, 0.0f,
             1.0f, 0.0f,
             0.0f, 1.0f,
@@ -384,6 +384,11 @@ public class GPUImageFilter extends GPUImageIO {
     }
 
     public static boolean RotationSwapsWidthAndHeight(GPUImageContext.GPUImageRotationMode inputRotation) {
+        if (inputRotation == null) {
+            GLog.e("inputRotation == null");
+            return false;
+        }
+
         switch (inputRotation) {
             case kGPUImageRotateLeft:
             case kGPUImageRotateRight:

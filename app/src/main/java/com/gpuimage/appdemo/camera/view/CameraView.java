@@ -38,6 +38,8 @@ import com.gpuimage.appdemo.camera.model.Camera2;
 import com.gpuimage.appdemo.camera.model.Camera2Api23;
 import com.gpuimage.appdemo.camera.model.CameraViewImpl;
 import com.gpuimage.appdemo.camera.model.Constants;
+import com.gpuimage.appdemo.utils.LogUtil;
+import com.gpuimage.outputs.GPUImageView;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -45,7 +47,7 @@ import java.util.ArrayList;
 import java.util.Set;
 
 public class CameraView extends FrameLayout {
-
+    protected final String TAG = getClass().getSimpleName();
     /** The camera device faces the opposite direction as the device's screen. */
     public static final int FACING_BACK = Constants.FACING_BACK;
 
@@ -94,6 +96,7 @@ public class CameraView extends FrameLayout {
         this(context, attrs, 0);
     }
 
+    public GPUImageView mGPUImageView = null;
     @SuppressWarnings("WrongConstant")
     public CameraView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
@@ -105,7 +108,11 @@ public class CameraView extends FrameLayout {
         // Internal setup
         final PreviewImpl preview = createPreviewImpl(context);
         mCallbacks = new CallbackBridge();
-        if (Build.VERSION.SDK_INT < 21) {
+
+        LogUtil.v(TAG, "SDK_INT: " + Build.VERSION.SDK_INT );
+       // int devicesVersion = Build.VERSION.SDK_INT;
+        int devicesVersion = 20;
+        if (devicesVersion < 21) {
             mImpl = new Camera1(mCallbacks, preview);
         } else if (Build.VERSION.SDK_INT < 23) {
             mImpl = new Camera2(mCallbacks, preview, context);
@@ -138,12 +145,20 @@ public class CameraView extends FrameLayout {
     @NonNull
     private PreviewImpl createPreviewImpl(Context context) {
         PreviewImpl preview;
-        if (Build.VERSION.SDK_INT < 14) {
-            preview = new SurfaceViewPreview(context, this);
-        } else {
-            preview = new TextureViewPreview(context, this);
+        //if (mGPUImageView != null)
+        {
+            LogUtil.v("CameraView", "createPreviewImpl GLTextureViewPreview");
+            mGPUImageView = new GPUImageView(context);
+            preview = new GLTextureViewPreview(context, this);
+            return preview;
         }
-        return preview;
+
+//        if (Build.VERSION.SDK_INT < 14) {
+//            preview = new SurfaceViewPreview(context, this);
+//        } else {
+//            preview = new TextureViewPreview(context, this);
+//        }
+//        return preview;
     }
 
     @Override

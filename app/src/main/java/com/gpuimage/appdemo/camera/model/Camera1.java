@@ -24,6 +24,7 @@ import android.support.v4.util.SparseArrayCompat;
 import android.view.SurfaceHolder;
 
 import com.gpuimage.appdemo.camera.view.PreviewImpl;
+import com.gpuimage.appdemo.utils.LogUtil;
 
 import java.io.IOException;
 import java.util.List;
@@ -306,6 +307,7 @@ public class Camera1 extends CameraViewImpl {
         if (mAspectRatio == null) {
             mAspectRatio = Constants.DEFAULT_ASPECT_RATIO;
         }
+
         adjustCameraParameters();
         mCamera.setDisplayOrientation(calcDisplayOrientation(mDisplayOrientation));
         mCallback.onCameraOpened();
@@ -339,6 +341,8 @@ public class Camera1 extends CameraViewImpl {
         mCameraParameters.setPreviewSize(size.getWidth(), size.getHeight());
         mCameraParameters.setPictureSize(pictureSize.getWidth(), pictureSize.getHeight());
         mCameraParameters.setRotation(calcCameraRotation(mDisplayOrientation));
+        LogUtil.v("Camera1", "camera Size: " + size.toString());
+
         setAutoFocusInternal(mAutoFocus);
         setFlashInternal(mFlash);
         mCamera.setParameters(mCameraParameters);

@@ -25,29 +25,42 @@ import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.gpuimage.GDispatchQueue;
 import com.gpuimage.appdemo.R;
+import com.gpuimage.appdemo.utils.LogUtil;
+import com.gpuimage.outputs.GPUImageView;
+import com.gpuimage.sources.GPUImageVideoCamera;
 
 @TargetApi(14)
-public class TextureViewPreview extends PreviewImpl {
-
-    private final TextureView mTextureView;
-
+public class GLTextureViewPreview extends PreviewImpl {
+    protected final String TAG = getClass().getSimpleName();
+    private final GPUImageView mGPUImageView;
     private int mDisplayOrientation;
 
-    TextureViewPreview(Context context, ViewGroup parent) {
-        final View view = View.inflate(context, R.layout.camera_texture_view, parent);
-        mTextureView = (TextureView) view.findViewById(R.id.texture_view);
-        mTextureView.setSurfaceTextureListener(new TextureView.SurfaceTextureListener() {
+    private int mOESTextureId;
+    private SurfaceTexture mOESSurfaceTexture;
+    private OESSurfaceTextureListener mOESSurfaceTextureListener = new OESSurfaceTextureListener();
 
+    GLTextureViewPreview(Context context, ViewGroup parent) {
+        mOESTextureId = GPUImageVideoCamera.genOESTexture();
+        mOESSurfaceTexture = new SurfaceTexture(mOESTextureId);
+
+        View view = View.inflate(context, R.layout.camera_gpuimageview, parent);
+        mGPUImageView = view.findViewById(R.id.gpuimage_view);
+
+        mGPUImageView.setSurfaceTextureListener(new TextureView.SurfaceTextureListener() {
             @Override
             public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
+                LogUtil.v(TAG, "onSurfaceTextureAvailable start");
                 setSize(width, height);
                 configureTransform();
                 dispatchSurfaceChanged();
+                mOESSurfaceTexture.setOnFrameAvailableListener(mOESSurfaceTextureListener);
+                LogUtil.v(TAG, "onSurfaceTextureAvailable end");
             }
 
             @Override
-            public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
+            public void onSurfaceTextureSizeChanged(SurfaceTexture surfaceTexture, int width, int height) {
                 setSize(width, height);
                 configureTransform();
                 dispatchSurfaceChanged();
@@ -69,22 +82,25 @@ public class TextureViewPreview extends PreviewImpl {
     @TargetApi(15)
     @Override
     public void setBufferSize(int width, int height) {
-        mTextureView.getSurfaceTexture().setDefaultBufferSize(width, height);
+        mGPUImageView.getSurfaceTexture().setDefaultBufferSize(width, height);
     }
 
     @Override
     public Surface getSurface() {
-        return new Surface(mTextureView.getSurfaceTexture());
+        //return new Surface(mGPUImageView.getSurfaceTexture());
+        return new Surface(mOESSurfaceTexture);
     }
 
     @Override
     public SurfaceTexture getSurfaceTexture() {
-        return mTextureView.getSurfaceTexture();
+        //return mGPUImageView.getSurfaceTexture();
+        LogUtil.v(TAG, "getSurfaceTexture mOESSurfaceTexture : " + mOESSurfaceTexture + " mOESTextureId: " + mOESTextureId);
+        return mOESSurfaceTexture;
     }
 
     @Override
     public View getView() {
-        return mTextureView;
+        return mGPUImageView;
     }
 
     @Override
@@ -100,7 +116,7 @@ public class TextureViewPreview extends PreviewImpl {
 
     @Override
     public boolean isReady() {
-        return mTextureView.getSurfaceTexture() != null;
+        return mGPUImageView.getSurfaceTexture() != null;
     }
 
     /**
@@ -139,7 +155,32 @@ public class TextureViewPreview extends PreviewImpl {
         } else if (mDisplayOrientation == 180) {
             matrix.postRotate(180, getWidth() / 2, getHeight() / 2);
         }
-        mTextureView.setTransform(matrix);
+        mGPUImageView.setTransform(matrix);
     }
 
+
+    public class OESSurfaceTextureListener implements SurfaceTexture.OnFrameAvailableListener {
+        public final String TAG = getClass().getSimpleName();
+
+        @Override
+        public void onFrameAvailable(SurfaceTexture surfaceTexture) {
+            GDispatchQueue.runSynchronouslyOnVideoProcessingQueue(() -> {
+                long t1, t2;
+                t1 = System.currentTimeMillis();
+
+                if (mOESSurfaceTexture != null) {
+                    LogUtil.v(TAG, "onFrameAvailable1");
+                    mOESSurfaceTexture.updateTexImage();
+                    LogUtil.v(TAG, "onFrameAvailable2");
+
+                    //mOESSurfaceTexture.getTransformMatrix(transformMatrix);
+                }
+
+                GPUImageVideoCamera.getInstance().process(t1);
+                LogUtil.v(TAG, "onFrameAvailable3");
+
+            });
+
+        }
+    }
 }

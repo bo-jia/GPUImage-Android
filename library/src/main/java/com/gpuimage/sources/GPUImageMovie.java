@@ -50,36 +50,33 @@ public class GPUImageMovie extends GPUImageOutput {
     }
 
     private void yuvConversionSetup() {
-        GDispatchQueue.runSynchronouslyOnVideoProcessingQueue(new Runnable() {
-            @Override
-            public void run() {
-                GPUImageContext.useImageProcessingContext();
-                mYuvConversionProgram = GPUImageContext.sharedImageProcessingContext().programForShaders(
-                        GPUImageFilter.kGPUImageVertexShaderString,
-                        GPUImageColorConversion.kGPUImageYUVFullRangeConversionForLAFragmentShaderString);
-                if (!mYuvConversionProgram.initialized) {
-                    if (!mYuvConversionProgram.link()) {
-                        String progLog = mYuvConversionProgram.programLog;
-                        GLog.e("Program link log: " + progLog);
-                        String fragLog = mYuvConversionProgram.fragmentShaderLog;
-                        GLog.e("Fragment shader compile log: " + fragLog);
-                        String vertLog = mYuvConversionProgram.vertexShaderLog;
-                        GLog.e("Vertex shader compile log: " + vertLog);
-                        mYuvConversionProgram = null;
-                        GLog.a(false, "Filter shader link failed");
-                    }
+        GDispatchQueue.runSynchronouslyOnVideoProcessingQueue(() -> {
+            GPUImageContext.useImageProcessingContext();
+            mYuvConversionProgram = GPUImageContext.sharedImageProcessingContext().programForShaders(
+                    GPUImageFilter.kGPUImageVertexShaderString,
+                    GPUImageColorConversion.kGPUImageYUVFullRangeConversionForLAFragmentShaderString);
+            if (!mYuvConversionProgram.initialized) {
+                if (!mYuvConversionProgram.link()) {
+                    String progLog = mYuvConversionProgram.programLog;
+                    GLog.e("Program link log: " + progLog);
+                    String fragLog = mYuvConversionProgram.fragmentShaderLog;
+                    GLog.e("Fragment shader compile log: " + fragLog);
+                    String vertLog = mYuvConversionProgram.vertexShaderLog;
+                    GLog.e("Vertex shader compile log: " + vertLog);
+                    mYuvConversionProgram = null;
+                    GLog.a(false, "Filter shader link failed");
                 }
-
-                GPUImageContext.setActiveShaderProgram(mYuvConversionProgram);
-                mYuvConversionPositionAttribute = mYuvConversionProgram.attributeIndex("position");
-                mYuvConversionTextureCoordinateAttribute = mYuvConversionProgram.attributeIndex("inputTextureCoordinate");
-                mYuvConversionLuminanceTextureUniform = mYuvConversionProgram.uniformIndex("luminanceTexture");
-                mYuvConversionChrominanceTextureUniform = mYuvConversionProgram.uniformIndex("chrominanceTexture");
-                mYuvConversionMatrixUniform = mYuvConversionProgram.uniformIndex("colorConversionMatrix");
-
-                GLES20.glEnableVertexAttribArray(mYuvConversionPositionAttribute);
-                GLES20.glEnableVertexAttribArray(mYuvConversionTextureCoordinateAttribute);
             }
+
+            GPUImageContext.setActiveShaderProgram(mYuvConversionProgram);
+            mYuvConversionPositionAttribute = mYuvConversionProgram.attributeIndex("position");
+            mYuvConversionTextureCoordinateAttribute = mYuvConversionProgram.attributeIndex("inputTextureCoordinate");
+            mYuvConversionLuminanceTextureUniform = mYuvConversionProgram.uniformIndex("luminanceTexture");
+            mYuvConversionChrominanceTextureUniform = mYuvConversionProgram.uniformIndex("chrominanceTexture");
+            mYuvConversionMatrixUniform = mYuvConversionProgram.uniformIndex("colorConversionMatrix");
+
+            GLES20.glEnableVertexAttribArray(mYuvConversionPositionAttribute);
+            GLES20.glEnableVertexAttribArray(mYuvConversionTextureCoordinateAttribute);
         });
     }
 

@@ -60,20 +60,17 @@ public class TestMovieWriterFragment extends BaseSingleGPUImageViewFragment {
         mMovieWriter = new GPUImageMovieWriter(videoReader.getFrameWidth(), videoReader.getFrameHeight(), outputPath);
         mMovie.addTarget(mMovieWriter);
 
-        mTestBtn.setOnClickListener(view -> {
-            new Thread(() -> {
-                mMovieWriter.startRecording();
-                videoReader.start();
-                while (videoReader.readFrame()) {
-                    if (videoReader.getTimestamp() < 0) {
-                        break;
-                    }
-                    GLog.v("read frame " + videoReader.getTimestamp());
-                    mMovie.processMovieFrame(videoReader.getNV12Data(), videoReader.getFrameWidth(), videoReader.getFrameHeight(), videoReader.getTimestamp());
+        mTestBtn.setOnClickListener(view -> new Thread(() -> {
+            mMovieWriter.startRecording();
+            videoReader.start();
+            while (videoReader.readFrame()) {
+                if (videoReader.getTimestamp() < 0) {
+                    break;
                 }
-                mMovieWriter.finishRecording();
-            }).run();
-
-        });
+                GLog.v("read frame " + videoReader.getTimestamp());
+                mMovie.processMovieFrame(videoReader.getNV12Data(), videoReader.getFrameWidth(), videoReader.getFrameHeight(), videoReader.getTimestamp());
+            }
+            mMovieWriter.finishRecording();
+        }).run());
     }
 }
