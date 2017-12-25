@@ -24,9 +24,8 @@ import android.opengl.EGLDisplay;
 import android.opengl.EGLExt;
 import android.opengl.EGLSurface;
 import android.view.Surface;
-import com.gpuimage.GLog;
 
-import javax.microedition.khronos.egl.EGL;
+import com.gpuimage.GLog;
 
 /**
  * Core EGL state (display, context, config).

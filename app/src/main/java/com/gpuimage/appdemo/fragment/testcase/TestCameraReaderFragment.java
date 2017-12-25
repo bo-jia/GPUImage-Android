@@ -40,6 +40,7 @@ public class TestCameraReaderFragment extends BaseFragment {
         View root = LayoutInflater.from(getActivity()).inflate(R.layout.fragment_test_camera_reader, null);
         ButterKnife.bind(this, root);
         initTopBar();
+        mTakePicBtn.setText("open camera");
         onCreateViewCompleted();
         LogUtil.v(TAG, "onCreateView");
 
@@ -55,7 +56,7 @@ public class TestCameraReaderFragment extends BaseFragment {
         GPUImageFilter filter = new GPUImageFilter();
         mGPUImageVideoCamera.addTarget(filter);
 
-        //mGPUImageVideoCamera.addTarget(mGPUImageView);
+        filter.addTarget(mGPUImageView);
     }
 
     @Override

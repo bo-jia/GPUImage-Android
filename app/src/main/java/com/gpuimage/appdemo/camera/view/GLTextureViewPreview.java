@@ -45,7 +45,7 @@ public class GLTextureViewPreview extends PreviewImpl {
         View view = View.inflate(context, R.layout.camera_gpuimageview, parent);
         mGPUImageView = view.findViewById(R.id.gpuimage_view);
 
-        mOESTextureId = GPUImageVideoCamera.genOESTexture();
+        mOESTextureId = GPUImageVideoCamera.genOESTexture1();
         mOESSurfaceTexture = new SurfaceTexture(mOESTextureId);
 
         mGPUImageView.setSurfaceTextureListener(new TextureView.SurfaceTextureListener() {
@@ -165,20 +165,15 @@ public class GLTextureViewPreview extends PreviewImpl {
         @Override
         public void onFrameAvailable(SurfaceTexture surfaceTexture) {
             GDispatchQueue.runAsynchronouslyOnVideoProcessingQueue(() -> {
-                long t1, t2;
-                t1 = System.currentTimeMillis();
-
+                long t1 = System.currentTimeMillis();
                 if (mOESSurfaceTexture != null) {
                     LogUtil.v(TAG, "onFrameAvailable1");
                     mOESSurfaceTexture.updateTexImage();
                     LogUtil.v(TAG, "onFrameAvailable2");
-
                     //mOESSurfaceTexture.getTransformMatrix(transformMatrix);
+                    GPUImageVideoCamera.getInstance().process(t1);
+                    LogUtil.v(TAG, "onFrameAvailable3");
                 }
-
-                GPUImageVideoCamera.getInstance().process(t1);
-                LogUtil.v(TAG, "onFrameAvailable3");
-
             });
 
         }

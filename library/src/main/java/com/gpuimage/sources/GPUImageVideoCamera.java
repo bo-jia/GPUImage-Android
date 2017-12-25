@@ -123,14 +123,16 @@ public class GPUImageVideoCamera extends GPUImageOutput {
             mOutputFramebuffer.activateFramebuffer();
             GLog.checkFramebufferStatus();
 
-            GLES20.glClearColor(1.0f, 0.0f, 1.0f, 1.0f);
+            GLES20.glClearColor(0.3f, 0.3f, 0.6f, 1.0f);
             GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
 
+            GLog.v("process mOESTexture:  " + mOESTexture);
             GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
             GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, mOESTexture);
             GLES20.glUniform1i(mTextureUniform, 0);
 
-            GLES20.glVertexAttribPointer(mPositionAttrib, 2, GLES20.GL_FLOAT, false, 0, mVerticesBuffer);
+            GLES20.glVertexAttribPointer(mPositionAttrib, 2, GLES20.GL_FLOAT, false, 0,
+                    mVerticesBuffer);
             GLES20.glVertexAttribPointer(mTextureCoordinateAttrib, 2, GLES20.GL_FLOAT, false, 0,
                     mTextureCoordinatesBuffer);
 
@@ -142,8 +144,6 @@ public class GPUImageVideoCamera extends GPUImageOutput {
             for (GPUImageInput currentTarget : mTargets) {
                 int indexOfObject = mTargets.indexOf(currentTarget);
                 int targetTextureIndex = mTargetTextureIndices.get(indexOfObject);
-
-                GLog.v(" mOutputTextureSize : " + mOutputTextureSize.toString());
 
                 currentTarget.setInputSize(mOutputTextureSize, targetTextureIndex);
                 currentTarget.setInputFramebuffer(mOutputFramebuffer, targetTextureIndex);
@@ -160,28 +160,39 @@ public class GPUImageVideoCamera extends GPUImageOutput {
     }
 
     public static int genOESTexture() {
-        final int[] textureID = {1};
         GLog.v("genOESTexture 1 ");
         GDispatchQueue.runSynchronouslyOnVideoProcessingQueue(() -> {
             GPUImageContext.useImageProcessingContext();
             GLog.v("genOESTexture 2 ");
             int[] texture = new int[1];
+//            GLES20.glGenTextures(1, texture, 0);
+//            GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, texture[0]);
+//            GLES20.glTexParameterf(GLES11Ext.GL_TEXTURE_EXTERNAL_OES,
+//                    GL10.GL_TEXTURE_MIN_FILTER, GL10.GL_NEAREST);
+//            GLES20.glTexParameterf(GLES11Ext.GL_TEXTURE_EXTERNAL_OES,
+//                    GL10.GL_TEXTURE_MAG_FILTER, GL10.GL_LINEAR);
+//            GLES20.glTexParameterf(GLES11Ext.GL_TEXTURE_EXTERNAL_OES,
+//                    GL10.GL_TEXTURE_WRAP_S, GL10.GL_CLAMP_TO_EDGE);
+//            GLES20.glTexParameterf(GLES11Ext.GL_TEXTURE_EXTERNAL_OES,
+//                    GL10.GL_TEXTURE_WRAP_T, GL10.GL_CLAMP_TO_EDGE);
+//            GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_2D, 0);
+
             GLES20.glGenTextures(1, texture, 0);
             GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, texture[0]);
             GLES20.glTexParameterf(GLES11Ext.GL_TEXTURE_EXTERNAL_OES,
-                    GL10.GL_TEXTURE_MIN_FILTER, GL10.GL_NEAREST);
+                    GL10.GL_TEXTURE_MIN_FILTER, GL10.GL_LINEAR);
             GLES20.glTexParameterf(GLES11Ext.GL_TEXTURE_EXTERNAL_OES,
                     GL10.GL_TEXTURE_MAG_FILTER, GL10.GL_LINEAR);
-            GLES20.glTexParameterf(GLES11Ext.GL_TEXTURE_EXTERNAL_OES,
+            GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES,
                     GL10.GL_TEXTURE_WRAP_S, GL10.GL_CLAMP_TO_EDGE);
-            GLES20.glTexParameterf(GLES11Ext.GL_TEXTURE_EXTERNAL_OES,
+            GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES,
                     GL10.GL_TEXTURE_WRAP_T, GL10.GL_CLAMP_TO_EDGE);
-            GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, 0);
-            textureID[0] = texture[0];
+            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0);
+
             mOESTexture = texture[0];
         });
         GLog.v("genOESTexture 3 , mOESTexture: " + mOESTexture);
-        return textureID[0];
+        return mOESTexture;
     }
 
     public static int genOESTexture1() {
@@ -201,6 +212,6 @@ public class GPUImageVideoCamera extends GPUImageOutput {
         mOESTexture = tex[0];
         GLog.v("genOESTexture  , mOESTexture: " + mOESTexture);
 
-        return tex[0];
+        return mOESTexture;
     }
 }

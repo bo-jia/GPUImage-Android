@@ -1,6 +1,7 @@
 package com.gpuimage.sources;
 
 import android.graphics.Bitmap;
+import android.os.Build;
 
 import com.gpuimage.GDispatchQueue;
 import com.gpuimage.GPUImageContext;
@@ -155,10 +156,16 @@ public class GPUImageOutput {
 	public void setAudioEncodingTarget() {}
 
 	public static ByteBuffer FillNativeBuffer(ByteBuffer buffer, float[] values) {
-		if (values == null) return buffer;
-		if (buffer == null || buffer.order() != ByteOrder.nativeOrder() || buffer.capacity() != values.length * Float.BYTES) {
-			buffer = ByteBuffer.allocateDirect(values.length * Float.BYTES).order(ByteOrder.nativeOrder());
-		}
+		if (values == null) {
+            return buffer;
+        }
+		int floatSize = 4;
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+		    floatSize = Float.BYTES;
+        }
+		if (buffer == null || buffer.order() != ByteOrder.nativeOrder() || buffer.capacity() != values.length * floatSize) {
+            buffer = ByteBuffer.allocateDirect(values.length * floatSize).order(ByteOrder.nativeOrder());
+        }
 		buffer.asFloatBuffer().put(values);
 		return buffer;
 	}
