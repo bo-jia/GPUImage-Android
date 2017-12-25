@@ -28,7 +28,6 @@ import android.view.ViewGroup;
 import com.gpuimage.appdemo.R;
 import com.gpuimage.appdemo.camera.testcase.CameraV1GLRenderer;
 import com.gpuimage.appdemo.camera.testcase.Utils;
-import com.gpuimage.appdemo.utils.LogUtil;
 
 @TargetApi(14)
 public class TestGLTextureViewPreview extends PreviewImpl {
@@ -41,7 +40,6 @@ public class TestGLTextureViewPreview extends PreviewImpl {
 
     private int mOESTextureId;
     private SurfaceTexture mOESSurfaceTexture;
-    private OESSurfaceTextureListener mOESSurfaceTextureListener = new OESSurfaceTextureListener();
 
     TestGLTextureViewPreview(Context context, ViewGroup parent) {
         final View view = View.inflate(context, R.layout.camera_texture_view, parent);
@@ -156,21 +154,4 @@ public class TestGLTextureViewPreview extends PreviewImpl {
         }
         mTextureView.setTransform(matrix);
     }
-
-
-    public class OESSurfaceTextureListener implements SurfaceTexture.OnFrameAvailableListener {
-        public final String TAG = getClass().getSimpleName();
-
-        @Override
-        public void onFrameAvailable(SurfaceTexture surfaceTexture) {
-            LogUtil.v(TAG, "onFrameAvailable0");
-            if (mOESSurfaceTexture != null) {
-                LogUtil.v(TAG, "onFrameAvailable1");
-                mOESSurfaceTexture.updateTexImage();
-                LogUtil.v(TAG, "onFrameAvailable2");
-                //mOESSurfaceTexture.getTransformMatrix(transformMatrix);
-            }
-        }
-    }
-
 }
