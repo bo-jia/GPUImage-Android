@@ -26,8 +26,9 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import com.gpuimage.appdemo.R;
+import com.gpuimage.appdemo.camera.testcase.CameraV1GLRenderer;
+import com.gpuimage.appdemo.camera.testcase.Utils;
 import com.gpuimage.appdemo.utils.LogUtil;
-import com.gpuimage.sources.GPUImageVideoCamera;
 
 @TargetApi(14)
 public class TestGLTextureViewPreview extends PreviewImpl {
@@ -36,22 +37,24 @@ public class TestGLTextureViewPreview extends PreviewImpl {
 
     private int mDisplayOrientation;
 
+    private CameraV1GLRenderer mRenderer;
+
     private int mOESTextureId;
     private SurfaceTexture mOESSurfaceTexture;
     private OESSurfaceTextureListener mOESSurfaceTextureListener = new OESSurfaceTextureListener();
 
-
     TestGLTextureViewPreview(Context context, ViewGroup parent) {
         final View view = View.inflate(context, R.layout.camera_texture_view, parent);
         mTextureView = view.findViewById(R.id.texture_view);
-
-        mOESTextureId = GPUImageVideoCamera.genOESTexture1();
-        mOESSurfaceTexture = new SurfaceTexture(mOESTextureId);
-        mOESSurfaceTexture.setOnFrameAvailableListener(mOESSurfaceTextureListener);
+        mRenderer = new CameraV1GLRenderer();
 
         mTextureView.setSurfaceTextureListener(new TextureView.SurfaceTextureListener() {
             @Override
             public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
+                mOESTextureId = Utils.createOESTextureObject();
+                mRenderer.init(mTextureView, mOESTextureId, context);
+                mOESSurfaceTexture = mRenderer.initOESTexture();
+
                 setSize(width, height);
                 configureTransform();
                 dispatchSurfaceChanged();

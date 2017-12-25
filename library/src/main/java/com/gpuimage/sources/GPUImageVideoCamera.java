@@ -70,7 +70,7 @@ public class GPUImageVideoCamera extends GPUImageOutput {
     }
 
     private void initProgram() {
-        GDispatchQueue.runSynchronouslyOnVideoProcessingQueue(() -> {
+        GDispatchQueue.runAsynchronouslyOnVideoProcessingQueue(() -> {
             GLog.v("camera initProgram");
             GPUImageContext.useImageProcessingContext();
             mOESProgram = GPUImageContext.sharedImageProcessingContext().programForShaders(GPUImageFilter.kGPUImageVertexShaderString, kGPUImageOES2ViewFShader);
@@ -98,7 +98,7 @@ public class GPUImageVideoCamera extends GPUImageOutput {
     }
 
     public void resetInputSize(final GSize size) {
-        GDispatchQueue.runSynchronouslyOnVideoProcessingQueue(() -> {
+        GDispatchQueue.runAsynchronouslyOnVideoProcessingQueue(() -> {
             mInputTextureSize = new GSize(size);
             int width = mInputTextureSize.width, height = mInputTextureSize.height;
             GLog.v(" resetInputSize w: " + width + " h:" + height);
@@ -114,7 +114,7 @@ public class GPUImageVideoCamera extends GPUImageOutput {
     }
 
     public void process(final double frameTime) {
-       // GDispatchQueue.runAsynchronouslyOnVideoProcessingQueue(() -> {
+        GDispatchQueue.runAsynchronouslyOnVideoProcessingQueue(() -> {
             mProcessingFrameTime = frameTime;
 
             GPUImageContext.setActiveShaderProgram(mOESProgram);
@@ -156,7 +156,7 @@ public class GPUImageVideoCamera extends GPUImageOutput {
                 int targetTextureIndex = mTargetTextureIndices.get(indexOfObject);
                 currentTarget.newFrameReadyAtTime(frameTime, targetTextureIndex);
             }
-       // });
+        });
     }
 
     public static int genOESTexture() {

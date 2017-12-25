@@ -34,6 +34,7 @@ public abstract class HomeController extends FrameLayout {
     private HomeControlListener mHomeControlListener;
     private ItemAdapter mItemAdapter;
 
+    public static Class<? extends BaseFragment> mSelectedClass;
     public HomeController(Context context) {
         super(context);
         LayoutInflater.from(context).inflate(R.layout.home_layout, this);
@@ -73,6 +74,7 @@ public abstract class HomeController extends FrameLayout {
             public void onItemClick(View itemView, int pos) {
                 ItemDescription item = mItemAdapter.getItem(pos);
                 try {
+                    mSelectedClass = item.getDemoClass();
                     BaseFragment fragment = item.getDemoClass().newInstance();
                     startFragment(fragment);
                 } catch (Exception e) {

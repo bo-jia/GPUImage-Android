@@ -38,6 +38,9 @@ import com.gpuimage.appdemo.camera.model.Camera2;
 import com.gpuimage.appdemo.camera.model.Camera2Api23;
 import com.gpuimage.appdemo.camera.model.CameraViewImpl;
 import com.gpuimage.appdemo.camera.model.Constants;
+import com.gpuimage.appdemo.fragment.home.HomeController;
+import com.gpuimage.appdemo.fragment.testcase.TestCameraReaderFragment;
+import com.gpuimage.appdemo.fragment.testcase.TestCameraV1ReaderFragment;
 import com.gpuimage.appdemo.utils.LogUtil;
 import com.gpuimage.outputs.GPUImageView;
 
@@ -145,25 +148,29 @@ public class CameraView extends FrameLayout {
     @NonNull
     private PreviewImpl createPreviewImpl(Context context) {
         PreviewImpl preview;
-        //if (mGPUImageView != null)
-        {
-            LogUtil.v("CameraView", "createPreviewImpl GLTextureViewPreview");
-            preview = new GLTextureViewPreview(context, this);
+        LogUtil.v(TAG, " mSelected fragment Class: " + HomeController.mSelectedClass.getSimpleName());
 
-            if (preview.getView() instanceof GPUImageView) {
-                LogUtil.v("CameraView", "set gpuimageview");
-                mGPUImageView = (GPUImageView) preview.getView();
+        if (HomeController.mSelectedClass == TestCameraV1ReaderFragment.class) {
+            LogUtil.v(TAG, "createPreviewImpl TestCameraV1ReaderFragment");
+            preview = new TestGLTextureViewPreview(context, this);
+        } else if (HomeController.mSelectedClass == TestCameraReaderFragment.class) {
+            LogUtil.v(TAG, "createPreviewImpl TestCameraV1ReaderFragment");
+            preview = new GLTextureViewPreview(context, this);
+        } else {
+            if (Build.VERSION.SDK_INT < 14) {
+                preview = new SurfaceViewPreview(context, this);
+            } else {
+                preview = new TextureViewPreview(context, this);
             }
-//            preview = new TestGLTextureViewPreview(context, this);
-            return preview;
         }
 
-//        if (Build.VERSION.SDK_INT < 14) {
-//            preview = new SurfaceViewPreview(context, this);
-//        } else {
-//            preview = new TextureViewPreview(context, this);
-//        }
-//        return preview;
+        if (preview.getView() instanceof GPUImageView) {
+            LogUtil.v("CameraView", "set gpuimageview");
+            mGPUImageView = (GPUImageView) preview.getView();
+        }
+
+        return preview;
+
     }
 
     @Override
