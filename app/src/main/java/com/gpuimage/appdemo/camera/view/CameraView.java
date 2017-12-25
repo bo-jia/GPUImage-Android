@@ -148,8 +148,13 @@ public class CameraView extends FrameLayout {
         //if (mGPUImageView != null)
         {
             LogUtil.v("CameraView", "createPreviewImpl GLTextureViewPreview");
-            mGPUImageView = new GPUImageView(context);
             preview = new GLTextureViewPreview(context, this);
+
+            if (preview.getView() instanceof GPUImageView) {
+                LogUtil.v("CameraView", "set gpuimageview");
+                mGPUImageView = (GPUImageView) preview.getView();
+            }
+//            preview = new TestGLTextureViewPreview(context, this);
             return preview;
         }
 

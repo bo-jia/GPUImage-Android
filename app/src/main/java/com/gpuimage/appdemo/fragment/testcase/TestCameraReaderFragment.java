@@ -54,7 +54,7 @@ public class TestCameraReaderFragment extends BaseFragment {
 //        GPUImageFilter filter = new GPUImageFilter();
 //        mGPUImageVideoCamera.addTarget(filter);
 
-   //     mGPUImageVideoCamera.addTarget(mGPUImageView);
+        mGPUImageVideoCamera.addTarget(mGPUImageView);
     }
 
     @Override

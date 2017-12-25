@@ -25,42 +25,40 @@ import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
 
-import com.gpuimage.GDispatchQueue;
 import com.gpuimage.appdemo.R;
 import com.gpuimage.appdemo.utils.LogUtil;
-import com.gpuimage.outputs.GPUImageView;
 import com.gpuimage.sources.GPUImageVideoCamera;
 
 @TargetApi(14)
-public class GLTextureViewPreview extends PreviewImpl {
-    protected final String TAG = getClass().getSimpleName();
-    private GPUImageView mGPUImageView;
+public class TestGLTextureViewPreview extends PreviewImpl {
+
+    private final TextureView mTextureView;
+
     private int mDisplayOrientation;
 
     private int mOESTextureId;
     private SurfaceTexture mOESSurfaceTexture;
     private OESSurfaceTextureListener mOESSurfaceTextureListener = new OESSurfaceTextureListener();
 
-    GLTextureViewPreview(Context context, ViewGroup parent) {
-        View view = View.inflate(context, R.layout.camera_gpuimageview, parent);
-        mGPUImageView = view.findViewById(R.id.gpuimage_view);
 
-        mOESTextureId = GPUImageVideoCamera.genOESTexture();
+    TestGLTextureViewPreview(Context context, ViewGroup parent) {
+        final View view = View.inflate(context, R.layout.camera_texture_view, parent);
+        mTextureView = view.findViewById(R.id.texture_view);
+
+        mOESTextureId = GPUImageVideoCamera.genOESTexture1();
         mOESSurfaceTexture = new SurfaceTexture(mOESTextureId);
+        mOESSurfaceTexture.setOnFrameAvailableListener(mOESSurfaceTextureListener);
 
-        mGPUImageView.setSurfaceTextureListener(new TextureView.SurfaceTextureListener() {
+        mTextureView.setSurfaceTextureListener(new TextureView.SurfaceTextureListener() {
             @Override
             public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
-                LogUtil.v(TAG, "onSurfaceTextureAvailable start");
                 setSize(width, height);
                 configureTransform();
                 dispatchSurfaceChanged();
-                mOESSurfaceTexture.setOnFrameAvailableListener(mOESSurfaceTextureListener);
-                LogUtil.v(TAG, "onSurfaceTextureAvailable end");
             }
 
             @Override
-            public void onSurfaceTextureSizeChanged(SurfaceTexture surfaceTexture, int width, int height) {
+            public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
                 setSize(width, height);
                 configureTransform();
                 dispatchSurfaceChanged();
@@ -82,25 +80,23 @@ public class GLTextureViewPreview extends PreviewImpl {
     @TargetApi(15)
     @Override
     public void setBufferSize(int width, int height) {
-        mGPUImageView.getSurfaceTexture().setDefaultBufferSize(width, height);
+        mTextureView.getSurfaceTexture().setDefaultBufferSize(width, height);
     }
 
     @Override
     public Surface getSurface() {
-        //return new Surface(mGPUImageView.getSurfaceTexture());
-        return new Surface(mOESSurfaceTexture);
+        return new Surface(mTextureView.getSurfaceTexture());
     }
 
     @Override
     public SurfaceTexture getSurfaceTexture() {
-        //return mGPUImageView.getSurfaceTexture();
-        LogUtil.v(TAG, "getSurfaceTexture mOESSurfaceTexture : " + mOESSurfaceTexture + " mOESTextureId: " + mOESTextureId);
         return mOESSurfaceTexture;
+        //return mTextureView.getSurfaceTexture();
     }
 
     @Override
     public View getView() {
-        return mGPUImageView;
+        return mTextureView;
     }
 
     @Override
@@ -116,7 +112,7 @@ public class GLTextureViewPreview extends PreviewImpl {
 
     @Override
     public boolean isReady() {
-        return mGPUImageView.getSurfaceTexture() != null;
+        return mTextureView.getSurfaceTexture() != null;
     }
 
     /**
@@ -155,7 +151,7 @@ public class GLTextureViewPreview extends PreviewImpl {
         } else if (mDisplayOrientation == 180) {
             matrix.postRotate(180, getWidth() / 2, getHeight() / 2);
         }
-        //mGPUImageView.setTransform(matrix);
+        mTextureView.setTransform(matrix);
     }
 
 
@@ -164,23 +160,14 @@ public class GLTextureViewPreview extends PreviewImpl {
 
         @Override
         public void onFrameAvailable(SurfaceTexture surfaceTexture) {
-            GDispatchQueue.runAsynchronouslyOnVideoProcessingQueue(() -> {
-                long t1, t2;
-                t1 = System.currentTimeMillis();
-
-                if (mOESSurfaceTexture != null) {
-                    LogUtil.v(TAG, "onFrameAvailable1");
-                    mOESSurfaceTexture.updateTexImage();
-                    LogUtil.v(TAG, "onFrameAvailable2");
-
-                    //mOESSurfaceTexture.getTransformMatrix(transformMatrix);
-                }
-
-                GPUImageVideoCamera.getInstance().process(t1);
-                LogUtil.v(TAG, "onFrameAvailable3");
-
-            });
-
+            LogUtil.v(TAG, "onFrameAvailable0");
+            if (mOESSurfaceTexture != null) {
+                LogUtil.v(TAG, "onFrameAvailable1");
+                mOESSurfaceTexture.updateTexImage();
+                LogUtil.v(TAG, "onFrameAvailable2");
+                //mOESSurfaceTexture.getTransformMatrix(transformMatrix);
+            }
         }
     }
+
 }

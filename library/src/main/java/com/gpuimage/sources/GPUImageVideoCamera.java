@@ -1,6 +1,5 @@
 package com.gpuimage.sources;
 
-import android.graphics.Bitmap;
 import android.opengl.GLES11Ext;
 import android.opengl.GLES20;
 
@@ -137,8 +136,8 @@ public class GPUImageVideoCamera extends GPUImageOutput {
 
             GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
 
-            Bitmap bitmap = mOutputFramebuffer.newBitmapFromFramebufferContents();
-            GLog.writeBitmap(bitmap, "sdfsfsf");
+            //Bitmap bitmap = mOutputFramebuffer.newBitmapFromFramebufferContents();
+            //GLog.writeBitmap(bitmap, "sdfsfsf");
 
             for (GPUImageInput currentTarget : mTargets) {
                 int indexOfObject = mTargets.indexOf(currentTarget);
@@ -185,19 +184,23 @@ public class GPUImageVideoCamera extends GPUImageOutput {
         return textureID[0];
     }
 
-//    public static int genOESTexture() {
-//        int[] tex = new int[1];
-//        GLES20.glGenTextures(1, tex, 0);
-//        GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, tex[0]);
-//        GLES20.glTexParameterf(GLES11Ext.GL_TEXTURE_EXTERNAL_OES,
-//                GL10.GL_TEXTURE_MIN_FILTER, GL10.GL_NEAREST);
-//        GLES20.glTexParameterf(GLES11Ext.GL_TEXTURE_EXTERNAL_OES,
-//                GL10.GL_TEXTURE_MAG_FILTER, GL10.GL_LINEAR);
-//        GLES20.glTexParameterf(GLES11Ext.GL_TEXTURE_EXTERNAL_OES,
-//                GL10.GL_TEXTURE_WRAP_S, GL10.GL_CLAMP_TO_EDGE);
-//        GLES20.glTexParameterf(GLES11Ext.GL_TEXTURE_EXTERNAL_OES,
-//                GL10.GL_TEXTURE_WRAP_T, GL10.GL_CLAMP_TO_EDGE);
-//        GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, 0);
-//        return tex[0];
-//    }
+    public static int genOESTexture1() {
+        int[] tex = new int[1];
+        GLES20.glGenTextures(1, tex, 0);
+        GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, tex[0]);
+        GLES20.glTexParameterf(GLES11Ext.GL_TEXTURE_EXTERNAL_OES,
+                GL10.GL_TEXTURE_MIN_FILTER, GL10.GL_NEAREST);
+        GLES20.glTexParameterf(GLES11Ext.GL_TEXTURE_EXTERNAL_OES,
+                GL10.GL_TEXTURE_MAG_FILTER, GL10.GL_LINEAR);
+        GLES20.glTexParameterf(GLES11Ext.GL_TEXTURE_EXTERNAL_OES,
+                GL10.GL_TEXTURE_WRAP_S, GL10.GL_CLAMP_TO_EDGE);
+        GLES20.glTexParameterf(GLES11Ext.GL_TEXTURE_EXTERNAL_OES,
+                GL10.GL_TEXTURE_WRAP_T, GL10.GL_CLAMP_TO_EDGE);
+        GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, 0);
+
+        mOESTexture = tex[0];
+        GLog.v("genOESTexture  , mOESTexture: " + mOESTexture);
+
+        return tex[0];
+    }
 }
