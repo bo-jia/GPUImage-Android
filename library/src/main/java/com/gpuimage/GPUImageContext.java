@@ -29,7 +29,9 @@ public class GPUImageContext {
     private static int maxTextureUnits = -1;
     private static int maxVaryingVectors = -1;
 
+    private EGLSurface mOffScreen;
     private EglCore mContext;
+
     private EglCore mSharedContext = null;
     private HashMap<String, GLProgram> mShaderProgramCache;
 
@@ -88,7 +90,7 @@ public class GPUImageContext {
     public void setContextShaderProgram(GLProgram shaderProgram) {
         EglCore imageProcessingContext = context();
         if (!imageProcessingContext.isCurrent()) {
-            imageProcessingContext.makeCurrent();
+            imageProcessingContext.makeCurrent(mOffScreen);
             if (currentShaderProgram == shaderProgram) {
                 shaderProgram.use();
             }
@@ -139,7 +141,9 @@ public class GPUImageContext {
     }
 
     private EglCore createContext() {
-        return new EglCore(mSharedContext == null ? null : mSharedContext.getEGLContext(), 0);
+        EglCore eglCore = new EglCore(mSharedContext == null ? null : mSharedContext.getEGLContext(), 0);
+        mOffScreen = eglCore.createOffscreenSurface(1,1);
+        return eglCore;
     }
 
     public GDispatchQueue contextQueue() {
@@ -164,14 +168,14 @@ public class GPUImageContext {
         EglCore imageProcessingContext = context();
         if (!imageProcessingContext.isCurrent())
         {
-            imageProcessingContext.makeCurrent();
+            imageProcessingContext.makeCurrent(mOffScreen);
         }
     }
 
     public EglCore context() {
         if (mContext == null) {
             mContext = createContext();
-            mContext.makeCurrent();
+            mContext.makeCurrent(mOffScreen);
             GLES20.glDisable(GLES20.GL_DEPTH_TEST);
         }
         return mContext;

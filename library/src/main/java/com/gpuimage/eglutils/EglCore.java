@@ -287,7 +287,8 @@ public final class EglCore {
             throw new RuntimeException("eglMakeCurrent(draw,read) failed");
         }
     }
-
+/*
+    // error on high level api
     public void makeCurrent() {
         if (mEGLDisplay == EGL14.EGL_NO_DISPLAY) {
             // called makeCurrent() before create?
@@ -297,7 +298,7 @@ public final class EglCore {
             throw new RuntimeException("eglMakeCurrent(draw,read) failed");
         }
     }
-
+*/
     /**
      * Makes no context current.
      */
