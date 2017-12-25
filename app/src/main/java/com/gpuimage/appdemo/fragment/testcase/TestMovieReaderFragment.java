@@ -5,7 +5,10 @@ import android.os.Environment;
 import com.gpuimage.GPUImageFilter;
 import com.gpuimage.appdemo.R;
 import com.gpuimage.appdemo.fragment.BaseSingleGPUImageViewFragment;
+import com.gpuimage.appdemo.model.AppDirectoryHelper;
 import com.gpuimage.appdemo.model.ItemDescription;
+import com.gpuimage.appdemo.utils.CommonUtil;
+import com.gpuimage.appdemo.utils.LogUtil;
 import com.gpuimage.mediautils.GMediaPlayer;
 import com.gpuimage.sources.GPUImageMovie;
 
@@ -40,8 +43,13 @@ public class TestMovieReaderFragment extends BaseSingleGPUImageViewFragment {
         mMovie.addTarget(filter);
         filter.addTarget(mGPUImageView);
 
+        final String path = AppDirectoryHelper.getImageCachePath() + "/final_video.mp4";
+        if (!CommonUtil.copyAssetsResToSD("out_480.mp4", path)) {
+            LogUtil.e("TestMovieReaderFragment", "copyAssetsResToSD error");
+            return;
+        }
+
         mTestBtn.setOnClickListener(view -> {
-            String path = Environment.getExternalStorageDirectory().getAbsolutePath() + "/final_video.mp4";
             player.loadMP4(path);
             player.start();
             player.play();
