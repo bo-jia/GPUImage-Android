@@ -123,7 +123,7 @@ public class GPUImageFilter extends GPUImageIO {
             public void run() {
                 GPUImageContext.useImageProcessingContext();
                 mFilterProgram = GPUImageContext.sharedImageProcessingContext().programForShaders(vertexShaderString, fragmentShaderString);
-                if (mFilterProgram.initialized) {
+                if (!mFilterProgram.initialized) {
                     if (!mFilterProgram.link()) {
                         String progLog = mFilterProgram.programLog;
                         GLog.e("Program link log: " + progLog);

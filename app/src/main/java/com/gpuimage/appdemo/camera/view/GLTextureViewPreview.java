@@ -24,8 +24,9 @@ import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
-
+import com.gpuimage.GLog;
 import com.gpuimage.GDispatchQueue;
+import com.gpuimage.GPUImageContext;
 import com.gpuimage.appdemo.R;
 import com.gpuimage.appdemo.utils.LogUtil;
 import com.gpuimage.outputs.GPUImageView;
@@ -45,18 +46,21 @@ public class GLTextureViewPreview extends PreviewImpl {
         View view = View.inflate(context, R.layout.camera_gpuimageview, parent);
         mGPUImageView = view.findViewById(R.id.gpuimage_view);
 
-        mOESTextureId = GPUImageVideoCamera.genOESTexture1();
-        mOESSurfaceTexture = new SurfaceTexture(mOESTextureId);
+        GDispatchQueue.runSynchronouslyOnVideoProcessingQueue(new Runnable() {
+            @Override
+            public void run() {
+                mOESTextureId = GPUImageVideoCamera.genOESTexture1();
+                mOESSurfaceTexture = new SurfaceTexture(mOESTextureId);
+            }
+        });
 
         mGPUImageView.setSurfaceTextureListener(new TextureView.SurfaceTextureListener() {
             @Override
             public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
-                LogUtil.v(TAG, "onSurfaceTextureAvailable start");
                 setSize(width, height);
                 configureTransform();
                 dispatchSurfaceChanged();
                 mOESSurfaceTexture.setOnFrameAvailableListener(mOESSurfaceTextureListener);
-                LogUtil.v(TAG, "onSurfaceTextureAvailable end");
             }
 
             @Override
@@ -167,12 +171,9 @@ public class GLTextureViewPreview extends PreviewImpl {
             GDispatchQueue.runAsynchronouslyOnVideoProcessingQueue(() -> {
                 long t1 = System.currentTimeMillis();
                 if (mOESSurfaceTexture != null) {
-                    LogUtil.v(TAG, "onFrameAvailable1");
                     mOESSurfaceTexture.updateTexImage();
-                    LogUtil.v(TAG, "onFrameAvailable2");
                     //mOESSurfaceTexture.getTransformMatrix(transformMatrix);
                     GPUImageVideoCamera.getInstance().process(t1);
-                    LogUtil.v(TAG, "onFrameAvailable3");
                 }
             });
 
