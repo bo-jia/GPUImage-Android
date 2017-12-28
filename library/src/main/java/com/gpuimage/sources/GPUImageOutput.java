@@ -159,12 +159,8 @@ public class GPUImageOutput {
 		if (values == null) {
             return buffer;
         }
-		int floatSize = 4;
-		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-		    floatSize = Float.BYTES;
-        }
 		if (buffer == null || buffer.order() != ByteOrder.nativeOrder() || buffer.capacity() != values.length * floatSize) {
-            buffer = ByteBuffer.allocateDirect(values.length * floatSize).order(ByteOrder.nativeOrder());
+            buffer = ByteBuffer.allocateDirect(values.length * Float.SIZE / Byte.SIZE).order(ByteOrder.nativeOrder());
         }
 		buffer.asFloatBuffer().put(values);
 		return buffer;
