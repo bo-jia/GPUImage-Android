@@ -57,24 +57,14 @@ public class GPUImageVideoCamera extends GPUImageOutput {
     private GSize mOutputTextureSize = new GSize();
 
     private GPUImageVideoCamera() {
-        mVerticesBuffer = ByteBuffer
-                .allocateDirect(GPUImageFilter.imageVertices.length * 4)
-                .order(ByteOrder.nativeOrder());
-        mVerticesBuffer.asFloatBuffer().put(GPUImageFilter.imageVertices);
-
-        mTextureCoordinatesBuffer = ByteBuffer
-                .allocateDirect(GPUImageFilter.noRotationTextureCoordinates.length * 4)
-                .order(ByteOrder.nativeOrder());
-        mTextureCoordinatesBuffer.asFloatBuffer().put(GPUImageFilter.noRotationTextureCoordinates);
         initProgram();
     }
 
     private void initProgram() {
         GDispatchQueue.runAsynchronouslyOnVideoProcessingQueue(() -> {
-            GLog.v("camera initProgram");
             GPUImageContext.useImageProcessingContext();
             mOESProgram = GPUImageContext.sharedImageProcessingContext().programForShaders(GPUImageFilter.kGPUImageVertexShaderString, kGPUImageOES2ViewFShader);
-            if (mOESProgram.initialized) {
+            if (!mOESProgram.initialized) {
                 if (!mOESProgram.link()) {
                     String progLog = mOESProgram.programLog;
                     GLog.e("Program link log: " + progLog);
@@ -93,17 +83,12 @@ public class GPUImageVideoCamera extends GPUImageOutput {
             GLES20.glEnableVertexAttribArray(mPositionAttrib);
             GLES20.glEnableVertexAttribArray(mTextureCoordinateAttrib);
 
-            GLog.v("camera initProgram end");
         });
     }
 
     public void resetInputSize(final GSize size) {
         GDispatchQueue.runAsynchronouslyOnVideoProcessingQueue(() -> {
             mInputTextureSize = new GSize(size);
-            int width = mInputTextureSize.width, height = mInputTextureSize.height;
-            GLog.v(" resetInputSize w: " + width + " h:" + height);
-
-            mTextureCoordinatesBuffer.asFloatBuffer().put(GPUImageFilter.noRotationTextureCoordinates);
             mOutputTextureSize = new GSize(mInputTextureSize.width, mInputTextureSize.height);
         });
     }
@@ -116,31 +101,25 @@ public class GPUImageVideoCamera extends GPUImageOutput {
     public void process(final double frameTime) {
         GDispatchQueue.runAsynchronouslyOnVideoProcessingQueue(() -> {
             mProcessingFrameTime = frameTime;
-
             GPUImageContext.setActiveShaderProgram(mOESProgram);
-
             mOutputFramebuffer = GPUImageContext.sharedFramebufferCache().fetchFramebuffer(mOutputTextureSize, false);
             mOutputFramebuffer.activateFramebuffer();
             GLog.checkFramebufferStatus();
-
             GLES20.glClearColor(0.3f, 0.3f, 0.6f, 1.0f);
             GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
-
-            GLog.v("process mOESTexture:  " + mOESTexture);
-            GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
+            GLES20.glActiveTexture(GLES20.GL_TEXTURE1);
             GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, mOESTexture);
-            GLES20.glUniform1i(mTextureUniform, 0);
-
+            GLES20.glUniform1i(mTextureUniform, 1);
+            mVerticesBuffer = GPUImageFilter.FillNativeBuffer(mVerticesBuffer, GPUImageFilter.imageVertices);
             GLES20.glVertexAttribPointer(mPositionAttrib, 2, GLES20.GL_FLOAT, false, 0,
                     mVerticesBuffer);
+            mTextureCoordinatesBuffer = GPUImageFilter.FillNativeBuffer(mTextureCoordinatesBuffer, GPUImageFilter.textureCoordinatesForRotation(GPUImageContext.GPUImageRotationMode.kGPUImageNoRotation));
             GLES20.glVertexAttribPointer(mTextureCoordinateAttrib, 2, GLES20.GL_FLOAT, false, 0,
                     mTextureCoordinatesBuffer);
-
             GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
 
             //Bitmap bitmap = mOutputFramebuffer.newBitmapFromFramebufferContents();
             //GLog.writeBitmap(bitmap, "sdfsfsf");
-
             for (GPUImageInput currentTarget : mTargets) {
                 int indexOfObject = mTargets.indexOf(currentTarget);
                 int targetTextureIndex = mTargetTextureIndices.get(indexOfObject);
@@ -148,7 +127,6 @@ public class GPUImageVideoCamera extends GPUImageOutput {
                 currentTarget.setInputSize(mOutputTextureSize, targetTextureIndex);
                 currentTarget.setInputFramebuffer(mOutputFramebuffer, targetTextureIndex);
             }
-
             mOutputFramebuffer.unlock();
 
             for (GPUImageInput currentTarget : mTargets) {

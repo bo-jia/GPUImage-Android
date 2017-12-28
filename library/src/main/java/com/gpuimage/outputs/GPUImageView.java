@@ -31,14 +31,11 @@ public class GPUImageView extends TextureView implements GPUImageInput, TextureV
 
     public GPUImageView(Context context) {
         super(context);
-        GLog.v("GPUImageView context");
     }
 
     public GPUImageView(Context context, AttributeSet attrs) {
         super(context, attrs);
         super.setSurfaceTextureListener(this);
-
-        GLog.v("GPUImageView context xx");
         commonInit();
     }
 
@@ -197,8 +194,6 @@ public class GPUImageView extends TextureView implements GPUImageInput, TextureV
                 GLES20.glEnableVertexAttribArray(mDisplayTextureCoordinateAttribute);
                 setBackgroundColor(0.0f, 0.0f, 0.0f, 1.0f);
                 mFillMode = GPUImageFillModeType.kGPUImageFillModePreserveAspectRatio;
-
-                GLog.w("mDisplayProgram~~ :  " + mDisplayProgram.toString());
             }
         });
     }
