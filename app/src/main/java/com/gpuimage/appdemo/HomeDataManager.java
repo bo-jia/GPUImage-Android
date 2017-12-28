@@ -6,6 +6,7 @@ import com.gpuimage.appdemo.fragment.testcase.TestCameraReaderFragment;
 import com.gpuimage.appdemo.fragment.testcase.TestCameraV1ReaderFragment;
 import com.gpuimage.appdemo.fragment.testcase.TestMovieReaderFragment;
 import com.gpuimage.appdemo.fragment.testcase.TestMovieWriterFragment;
+import com.gpuimage.appdemo.fragment.testcase.TestOffscreenCameraFragment;
 import com.gpuimage.appdemo.model.ItemDescription;
 
 import java.util.ArrayList;
@@ -45,6 +46,7 @@ public class HomeDataManager {
         mComponentsNames.put(TestMovieWriterFragment.class, TestMovieWriterFragment.mItemDescription);
         mComponentsNames.put(TestCameraReaderFragment.class, TestCameraReaderFragment.mItemDescription);
         mComponentsNames.put(TestCameraV1ReaderFragment.class, TestCameraV1ReaderFragment.mItemDescription);
+        mComponentsNames.put(TestOffscreenCameraFragment.class, TestOffscreenCameraFragment.mItemDescription);
     }
 
     /**

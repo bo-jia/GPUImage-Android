@@ -41,6 +41,7 @@ import com.gpuimage.appdemo.camera.model.Constants;
 import com.gpuimage.appdemo.fragment.home.HomeController;
 import com.gpuimage.appdemo.fragment.testcase.TestCameraReaderFragment;
 import com.gpuimage.appdemo.fragment.testcase.TestCameraV1ReaderFragment;
+import com.gpuimage.appdemo.fragment.testcase.TestOffscreenCameraFragment;
 import com.gpuimage.appdemo.utils.LogUtil;
 import com.gpuimage.outputs.GPUImageView;
 
@@ -156,6 +157,9 @@ public class CameraView extends FrameLayout {
         } else if (HomeController.mSelectedClass == TestCameraReaderFragment.class) {
             LogUtil.v(TAG, "createPreviewImpl TestCameraV1ReaderFragment");
             preview = new GLTextureViewPreview(context, this);
+        } else if (HomeController.mSelectedClass == TestOffscreenCameraFragment.class) {
+            LogUtil.v(TAG, "createPreviewImpl TestOffscreenCameraFragment");
+            preview = new TestOffscreenPreview(context, this);
         } else {
             if (Build.VERSION.SDK_INT < 14) {
                 preview = new SurfaceViewPreview(context, this);
