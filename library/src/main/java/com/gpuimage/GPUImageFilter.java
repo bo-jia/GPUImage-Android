@@ -225,9 +225,9 @@ public class GPUImageFilter extends GPUImageIO {
         GLES20.glActiveTexture(GLES20.GL_TEXTURE2);
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mFirstInputFramebuffer.texture());
         GLES20.glUniform1i(mFilterInputTextureUniform, 2);
-        mVerticesCoordBuffer = GPUImageOutput.FillNativeBuffer(mVerticesCoordBuffer, vertices);
+        mVerticesCoordBuffer = GPUImageOutput.fillnativebuffer(mVerticesCoordBuffer, vertices);
         GLES20.glVertexAttribPointer(mFilterPositionAttribute, 2, GLES20.GL_FLOAT, false, 0, mVerticesCoordBuffer);
-        mTextureCoordBuffer = GPUImageOutput.FillNativeBuffer(mTextureCoordBuffer, textureCoordinates);
+        mTextureCoordBuffer = GPUImageOutput.fillnativebuffer(mTextureCoordBuffer, textureCoordinates);
         GLES20.glVertexAttribPointer(mFilterTextureCoordinateAttribute, 2, GLES20.GL_FLOAT, false, 0, mTextureCoordBuffer);
 
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);

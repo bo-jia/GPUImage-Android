@@ -240,9 +240,9 @@ public class GPUImageMovieWriter implements GPUImageInput {
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, inputFramebufferToUse.texture());
         GLES20.glUniform1i(mColorSwizzlingInputTextureUniform, 4);
 
-        mVerticesCoordBuffer = GPUImageOutput.FillNativeBuffer(mVerticesCoordBuffer, squareVertices);
+        mVerticesCoordBuffer = GPUImageOutput.fillnativebuffer(mVerticesCoordBuffer, squareVertices);
         GLES20.glVertexAttribPointer(mColorSwizzlingPositionAttribute, 2, GLES20.GL_FLOAT, false,0 , mVerticesCoordBuffer);
-        mTextureCoordBuffer = GPUImageOutput.FillNativeBuffer(mTextureCoordBuffer, GPUImageFilter.textureCoordinatesForRotation(mInputRotation));
+        mTextureCoordBuffer = GPUImageOutput.fillnativebuffer(mTextureCoordBuffer, GPUImageFilter.textureCoordinatesForRotation(mInputRotation));
         GLES20.glVertexAttribPointer(mColorSwizzlingTextureCoordinateAttribute, 2, GLES20.GL_FLOAT, false, 0, mTextureCoordBuffer);
 
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);

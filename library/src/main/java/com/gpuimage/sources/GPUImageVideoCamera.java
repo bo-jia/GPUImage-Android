@@ -12,7 +12,6 @@ import com.gpuimage.GPUImageInput;
 import com.gpuimage.GSize;
 
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 
 import javax.microedition.khronos.opengles.GL10;
 
@@ -110,10 +109,10 @@ public class GPUImageVideoCamera extends GPUImageOutput {
             GLES20.glActiveTexture(GLES20.GL_TEXTURE1);
             GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, mOESTexture);
             GLES20.glUniform1i(mTextureUniform, 1);
-            mVerticesBuffer = GPUImageFilter.FillNativeBuffer(mVerticesBuffer, GPUImageFilter.imageVertices);
+            mVerticesBuffer = GPUImageFilter.fillnativebuffer(mVerticesBuffer, GPUImageFilter.imageVertices);
             GLES20.glVertexAttribPointer(mPositionAttrib, 2, GLES20.GL_FLOAT, false, 0,
                     mVerticesBuffer);
-            mTextureCoordinatesBuffer = GPUImageFilter.FillNativeBuffer(mTextureCoordinatesBuffer, GPUImageFilter.textureCoordinatesForRotation(GPUImageContext.GPUImageRotationMode.kGPUImageNoRotation));
+            mTextureCoordinatesBuffer = GPUImageFilter.fillnativebuffer(mTextureCoordinatesBuffer, GPUImageFilter.textureCoordinatesForRotation(GPUImageContext.GPUImageRotationMode.kGPUImageNoRotation));
             GLES20.glVertexAttribPointer(mTextureCoordinateAttrib, 2, GLES20.GL_FLOAT, false, 0,
                     mTextureCoordinatesBuffer);
             GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);

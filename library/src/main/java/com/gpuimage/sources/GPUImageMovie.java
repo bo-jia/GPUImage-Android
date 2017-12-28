@@ -187,9 +187,9 @@ public class GPUImageMovie extends GPUImageOutput {
 
         GLES20.glUniformMatrix3fv(mYuvConversionMatrixUniform, 1, false, mPreferredConversion, 0);
 
-        mVerticesCoordBuffer = GPUImageOutput.FillNativeBuffer(mVerticesCoordBuffer, mSquareVertices);
+        mVerticesCoordBuffer = GPUImageOutput.fillnativebuffer(mVerticesCoordBuffer, mSquareVertices);
         GLES20.glVertexAttribPointer(mYuvConversionPositionAttribute, 2, GLES20.GL_FLOAT, false, 0, mVerticesCoordBuffer);
-        mTextureCoordBuffer = GPUImageOutput.FillNativeBuffer(mTextureCoordBuffer, mTextureCoordinates);
+        mTextureCoordBuffer = GPUImageOutput.fillnativebuffer(mTextureCoordBuffer, mTextureCoordinates);
         GLES20.glVertexAttribPointer(mYuvConversionTextureCoordinateAttribute, 2, GLES20.GL_FLOAT, false, 0, mTextureCoordBuffer);
 
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);

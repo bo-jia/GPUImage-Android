@@ -289,9 +289,9 @@ public class GPUImageView extends TextureView implements GPUImageInput, TextureV
                 GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mInputFramebufferForDisplay.texture());
                 GLES20.glUniform1i(mDisplayInputTextureUniform, 4);
 
-                mVerticesCoordBuffer = GPUImageOutput.FillNativeBuffer(mVerticesCoordBuffer, mImageVertices);
+                mVerticesCoordBuffer = GPUImageOutput.fillnativebuffer(mVerticesCoordBuffer, mImageVertices);
                 GLES20.glVertexAttribPointer(mDisplayPositionAttribute, 2, GLES20.GL_FLOAT, false,0 , mVerticesCoordBuffer);
-                mTextureCoordBuffer = GPUImageOutput.FillNativeBuffer(mTextureCoordBuffer, textureCoordinatesForRotation(mInputRotation));
+                mTextureCoordBuffer = GPUImageOutput.fillnativebuffer(mTextureCoordBuffer, textureCoordinatesForRotation(mInputRotation));
                 GLES20.glVertexAttribPointer(mDisplayTextureCoordinateAttribute, 2, GLES20.GL_FLOAT, false, 0, mTextureCoordBuffer);
 
                 GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
@@ -319,9 +319,9 @@ public class GPUImageView extends TextureView implements GPUImageInput, TextureV
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mRendererFramebuffer.texture());
         GLES20.glUniform1i(mDisplayInputTextureUniform, 4);
 
-        mVerticesCoordBuffer = GPUImageOutput.FillNativeBuffer(mVerticesCoordBuffer, GPUImageFilter.imageVertices);
+        mVerticesCoordBuffer = GPUImageOutput.fillnativebuffer(mVerticesCoordBuffer, GPUImageFilter.imageVertices);
         GLES20.glVertexAttribPointer(mDisplayPositionAttribute, 2, GLES20.GL_FLOAT, false,0 , mVerticesCoordBuffer);
-        mTextureCoordBuffer = GPUImageOutput.FillNativeBuffer(mTextureCoordBuffer, GPUImageFilter.textureCoordinatesForRotation(mInputRotation));
+        mTextureCoordBuffer = GPUImageOutput.fillnativebuffer(mTextureCoordBuffer, GPUImageFilter.textureCoordinatesForRotation(mInputRotation));
         GLES20.glVertexAttribPointer(mDisplayTextureCoordinateAttribute, 2, GLES20.GL_FLOAT, false, 0, mTextureCoordBuffer);
 
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
