@@ -10,71 +10,76 @@ import com.gpuimage.appdemo.fragment.testcase.TestOffscreenCameraFragment;
 import com.gpuimage.appdemo.model.ItemDescription;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * @author cginechen
  * @date 2016-10-21
  */
 public class HomeDataManager {
-    private static HomeDataManager _sInstance;
-    private HashMap<Class<? extends BaseFragment>, ItemDescription> mComponentsNames;
-    private HashMap<Class<? extends BaseFragment>, ItemDescription> mUtilNames;
-    private HashMap<Class<? extends BaseFragment>, ItemDescription> mLabNames;
+    private static HomeDataManager sInstance;
+    private ArrayList<ItemDescription> mComponentsNames;
+    private ArrayList<ItemDescription> mUtilNames;
+    private ArrayList<ItemDescription> mLabNames;
 
-    public HomeDataManager() {
+    private HomeDataManager() {
         initComponentsDesc();
         initUtilDesc();
         initLabDesc();
     }
 
     public static HomeDataManager getInstance() {
-        if (_sInstance == null) {
-            _sInstance = new HomeDataManager();
+        if (sInstance == null) {
+            sInstance = new HomeDataManager();
         }
-        return _sInstance;
+        return sInstance;
     }
 
     /**
      * Components
      */
     private void initComponentsDesc() {
-        mComponentsNames = new HashMap<>();
-        mComponentsNames.put(TestMovieReaderFragment.class, TestMovieReaderFragment.mItemDescription);
-        mComponentsNames.put(TestMovieWriterFragment.class, TestMovieWriterFragment.mItemDescription);
-        mComponentsNames.put(TestCameraReaderFragment.class, TestCameraReaderFragment.mItemDescription);
-        mComponentsNames.put(TestCameraV1ReaderFragment.class, TestCameraV1ReaderFragment.mItemDescription);
-        mComponentsNames.put(TestOffscreenCameraFragment.class, TestOffscreenCameraFragment.mItemDescription);
+        mComponentsNames = new ArrayList<>();
+        mComponentsNames.add(TestMovieReaderFragment.mItemDescription);
+        mComponentsNames.add(TestMovieWriterFragment.mItemDescription);
+        mComponentsNames.add(TestCameraReaderFragment.mItemDescription);
+        mComponentsNames.add(TestCameraV1ReaderFragment.mItemDescription);
+        mComponentsNames.add(TestOffscreenCameraFragment.mItemDescription);
     }
 
     /**
      * Helper
      */
     private void initUtilDesc() {
-        mUtilNames = new HashMap<>();
-        mUtilNames.put(TestMovieReaderFragment.class, TestMovieReaderFragment.mItemDescription);
+        mUtilNames = new ArrayList<>();
+        mUtilNames.add(TestMovieReaderFragment.mItemDescription);
     }
 
     /**
      * Lab
      */
     private void initLabDesc() {
-        mLabNames = new HashMap<>();
-        mLabNames.put(TestMovieReaderFragment.class, TestMovieReaderFragment.mItemDescription);
+        mLabNames = new ArrayList<>();
+        mLabNames.add(TestMovieReaderFragment.mItemDescription);
     }
 
-    public ItemDescription getDescription(Class<? extends BaseFragment> cls) {
-        ItemDescription itemDescription = null;
-        if ((itemDescription = mComponentsNames.get(cls)) != null) {
-            return itemDescription;
+    private ItemDescription getDescription(Class<? extends BaseFragment> cls) {
+        for (ItemDescription itemDescription: mComponentsNames) {
+            if (itemDescription.getDemoClass() == cls) {
+                return itemDescription;
+            }
         }
-        if ((itemDescription = mLabNames.get(cls)) != null) {
-            return itemDescription;
+
+        for (ItemDescription itemDescription: mLabNames) {
+            if (itemDescription.getDemoClass() == cls) {
+                return itemDescription;
+            }
         }
-        if ((itemDescription = mUtilNames.get(cls)) != null) {
-            return itemDescription;
+
+        for (ItemDescription itemDescription: mUtilNames) {
+            if (itemDescription.getDemoClass() == cls) {
+                return itemDescription;
+            }
         }
         return null;
     }
@@ -88,26 +93,20 @@ public class HomeDataManager {
     }
 
     public List<ItemDescription> getComponentsDescriptions() {
-        List<ItemDescription> list = new ArrayList<>();
-        for (Map.Entry entry : mComponentsNames.entrySet()) {
-            list.add((ItemDescription) entry.getValue());
-        }
+        ArrayList<ItemDescription> list = new ArrayList<>();
+        list.addAll(mComponentsNames);
         return list;
     }
 
     public List<ItemDescription> getUtilDescriptions() {
-        List<ItemDescription> list = new ArrayList<>();
-        for (Map.Entry entry : mUtilNames.entrySet()) {
-            list.add((ItemDescription) entry.getValue());
-        }
+        ArrayList<ItemDescription> list = new ArrayList<>();
+        list.addAll(mUtilNames);
         return list;
     }
 
     public List<ItemDescription> getLabDescriptions() {
-        List<ItemDescription> list = new ArrayList<>();
-        for (Map.Entry entry : mLabNames.entrySet()) {
-            list.add((ItemDescription) entry.getValue());
-        }
+        ArrayList<ItemDescription> list = new ArrayList<>();
+        list.addAll(mLabNames);
         return list;
     }
 }

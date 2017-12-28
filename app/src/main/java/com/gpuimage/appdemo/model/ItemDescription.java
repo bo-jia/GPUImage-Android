@@ -49,4 +49,5 @@ public class ItemDescription {
     public int getIconRes() {
         return mIconRes;
     }
+
 }
