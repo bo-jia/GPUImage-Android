@@ -32,16 +32,7 @@ public class GPUImageVideoCamera extends GPUImageOutput {
         return SingletonHolder.INSTANCE;
     }
 
-    public static final String kGPUImageOES2ViewFShader =
-            "#extension GL_OES_EGL_image_external : require\n" +
-                    "varying highp vec2 textureCoordinate;\n" +
-                    " \n" +
-                    "uniform samplerExternalOES inputImageTexture;\n" +
-                    " \n" +
-                    "void main()\n" +
-                    "{\n" +
-                    "     gl_FragColor = texture2D(inputImageTexture, textureCoordinate);\n" +
-                    "}";
+    public static final String kGPUImageOES2ViewFShader = ShaderStringUtil.Companion.getKGPUImageOES2ViewFShader();
 
     private int mTextureUniform;
     private double mProcessingFrameTime;
