@@ -10,8 +10,10 @@ import com.gpuimage.GSize;
 import com.gpuimage.appdemo.R;
 import com.gpuimage.appdemo.base.BaseFragment;
 import com.gpuimage.appdemo.camera.view.CameraView;
+import com.gpuimage.appdemo.model.AppDirectoryHelper;
 import com.gpuimage.appdemo.model.ItemDescription;
 import com.gpuimage.appdemo.utils.LogUtil;
+import com.gpuimage.outputs.GPUImageMovieWriter;
 import com.gpuimage.outputs.GPUImageView;
 import com.gpuimage.sources.GPUImageVideoCamera;
 import com.qmuiteam.qmui.widget.QMUITopBar;
@@ -32,15 +34,21 @@ public class TestCameraReaderFragment extends BaseFragment {
     @BindView(R.id.topbar) QMUITopBar mTopBar;
     @BindView(R.id.camera) protected CameraView mCameraView;
     @BindView(R.id.take_picture) protected Button mTakePicBtn;
+    @BindView(R.id.start_recording) protected Button mStartRecBtn;
+    @BindView(R.id.stop_recording) protected Button mStopRecBtn;
 
     protected GPUImageView mGPUImageView;
     private GPUImageVideoCamera mGPUImageVideoCamera;
+
+    private GPUImageMovieWriter mMovieWriter;
     @Override
     protected View onCreateView() {
-        View root = LayoutInflater.from(getActivity()).inflate(R.layout.fragment_test_camera_reader, null);
+        View root = LayoutInflater.from(getActivity()).inflate(R.layout.fragment_test_gpuimage_camera_reader, null);
         ButterKnife.bind(this, root);
         initTopBar();
         mTakePicBtn.setText("open camera");
+        mStartRecBtn.setText("start record");
+        mStopRecBtn.setText("stop record");
         onCreateViewCompleted();
         LogUtil.v(TAG, "onCreateView");
 
@@ -53,10 +61,14 @@ public class TestCameraReaderFragment extends BaseFragment {
         mGPUImageVideoCamera = GPUImageVideoCamera.getInstance();
         mGPUImageVideoCamera.resetInputSize(new GSize(1440,1080));
 
+        String outputPath = AppDirectoryHelper.getImageCachePath() + "/out.mp4";
+        mMovieWriter = new GPUImageMovieWriter(1280, 720, outputPath);
+
         GPUImageFilter filter = new GPUImageFilter();
         mGPUImageVideoCamera.addTarget(filter);
 
         filter.addTarget(mGPUImageView);
+        filter.addTarget(mMovieWriter);
     }
 
     @Override
@@ -75,6 +87,16 @@ public class TestCameraReaderFragment extends BaseFragment {
     @OnClick(R.id.take_picture )
     public void openCamera(){
          mCameraView.start();
+    }
+
+    @OnClick(R.id.start_recording )
+    public void startRecording(){
+        mMovieWriter.startRecording();
+    }
+
+    @OnClick(R.id.stop_recording )
+    public void stopRecording(){
+        mMovieWriter.finishRecording();
     }
 
     public static ItemDescription mItemDescription = new ItemDescription(TestCameraReaderFragment.class,
