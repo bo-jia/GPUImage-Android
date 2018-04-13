@@ -37,7 +37,9 @@ public class GLog {
     }
 
     public static void a(boolean assertion, String str) {
-        if (!assertion) e(str);
+        if (!assertion) {
+            e(str);
+        }
         assert(assertion);
     }
 

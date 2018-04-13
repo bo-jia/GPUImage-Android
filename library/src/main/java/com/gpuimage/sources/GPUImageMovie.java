@@ -81,7 +81,9 @@ public class GPUImageMovie extends GPUImageOutput {
     }
 
     private void loadTexture(byte[] yuv, int width, int height) {
-        if (yuv == null || width == 0 || height == 0) return;
+        if (yuv == null || width == 0 || height == 0) {
+            return;
+        }
         if (mFrameSize == null || mFrameSize.width != width || mFrameSize.height != height) {
             if (mLuminanceTexture > 0) {
                 GLES20.glDeleteTextures(1, new int[] {mLuminanceTexture}, 0);
@@ -123,12 +125,14 @@ public class GPUImageMovie extends GPUImageOutput {
     }
 
     private void copyFrame(byte[] yuv, int width, int height) {
-        if (mLuminanceData == null || mLuminanceData.length != width * height)
+        if (mLuminanceData == null || mLuminanceData.length != width * height) {
             mLuminanceData = new byte[width * height];
+        }
         System.arraycopy(yuv, 0, mLuminanceData, 0, mLuminanceData.length);
 
-        if (mChrominanceData == null || mChrominanceData.length != width * height / 2)
+        if (mChrominanceData == null || mChrominanceData.length != width * height / 2) {
             mChrominanceData = new byte[width * height / 2];
+        }
         System.arraycopy(yuv, width * height, mChrominanceData, 0, mChrominanceData.length);
     }
 

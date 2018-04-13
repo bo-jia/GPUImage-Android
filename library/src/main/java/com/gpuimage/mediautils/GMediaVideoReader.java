@@ -136,7 +136,9 @@ public class GMediaVideoReader {
                     mMediaCodec.releaseOutputBuffer(outputIndex, false);
                 } break;
             }
-            if (outputStatus >= 0) break;
+            if (outputStatus >= 0) {
+                break;
+            }
         }
         return true;
     }

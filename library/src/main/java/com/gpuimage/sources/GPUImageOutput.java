@@ -76,7 +76,9 @@ public class GPUImageOutput {
 	}
 	
 	public void addTarget(final GPUImageInput newTarget, final int textureLocation) {
-		if (mTargets.contains(newTarget)) return;
+		if (mTargets.contains(newTarget)) {
+			return;
+		}
 
 		cachedMaximumOutputSize = GSize.newZero();
 
@@ -93,9 +95,13 @@ public class GPUImageOutput {
 	}
 	
 	public void removeTarget(final GPUImageInput targetToRemove) {
-		if (!mTargets.contains(targetToRemove)) return;
+		if (!mTargets.contains(targetToRemove)) {
+			return;
+		}
 
-		if (targetToIgnoreForUpdates == targetToRemove) targetToIgnoreForUpdates = null;
+		if (targetToIgnoreForUpdates == targetToRemove) {
+			targetToIgnoreForUpdates = null;
+		}
 
 		cachedMaximumOutputSize = GSize.newZero();
 

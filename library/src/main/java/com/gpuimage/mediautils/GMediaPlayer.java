@@ -65,7 +65,9 @@ public class GMediaPlayer {
     }
 
     public void play() {
-        if (mPlaying) return;
+        if (mPlaying) {
+            return;
+        }
         mSystemStartTime = System.currentTimeMillis();
         synchronized (mQueue) {
             mQueue.add(new Runnable() {
@@ -90,7 +92,9 @@ public class GMediaPlayer {
 
                             if (diffVideo < diffSystem - 1 && mDropable) {
                             } else {
-                                if (mFrameReady != null) mFrameReady.newFrame(mVideoReader.getNV12Data(), mVideoReader.getFrameWidth(), mVideoReader.getFrameHeight(), mVideoReader.getTimestamp());
+                                if (mFrameReady != null) {
+                                    mFrameReady.newFrame(mVideoReader.getNV12Data(), mVideoReader.getFrameWidth(), mVideoReader.getFrameHeight(), mVideoReader.getTimestamp());
+                                }
                             }
                         } else {
                             mPlaying = false;
@@ -140,7 +144,9 @@ public class GMediaPlayer {
                 GDispatchQueue.runAsynchronouslyOnVideoProcessingQueue(new Runnable() {
                     @Override
                     public void run() {
-                        if (System.currentTimeMillis() - t0 > 50) return;
+                        if (System.currentTimeMillis() - t0 > 50) {
+                            return;
+                        }
                         movie.processMovieFrame(buffer, width, height, timestamp);
                     }
                 });
