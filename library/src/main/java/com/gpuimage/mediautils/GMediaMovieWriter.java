@@ -40,6 +40,8 @@ public class GMediaMovieWriter {
     private int mTrackIndex;
     private boolean mMuxerStarted;
 
+    private File mH264File;
+
     private OutputStream mOutputStream;
 
     public GMediaMovieWriter(int width, int height, File outputFile, HashMap<String, Object> outputSettings) throws IOException {
@@ -72,9 +74,8 @@ public class GMediaMovieWriter {
         mTrackIndex = -1;
         mMuxerStarted = false;
 
-        String outputPath = Environment.getExternalStorageDirectory().getAbsolutePath() + "/gpuimage/abc.h264";
-        File file = new File(outputPath);
-        mOutputStream = new FileOutputStream(file);
+        mH264File = new File(outputFile.toString() + ".h264");
+        mOutputStream = new FileOutputStream(mH264File);
     }
 
     private void loadFormat(MediaFormat format, HashMap<String, Object> settings) {
@@ -224,6 +225,7 @@ public class GMediaMovieWriter {
                         GLog.v("end of stream reached");
                         try {
                             mOutputStream.close();
+                            mH264File.delete();
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
