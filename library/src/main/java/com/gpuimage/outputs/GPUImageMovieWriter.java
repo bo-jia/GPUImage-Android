@@ -2,6 +2,7 @@ package com.gpuimage.outputs;
 
 import android.opengl.EGLSurface;
 import android.opengl.GLES20;
+import android.util.Log;
 import android.view.Surface;
 
 import com.gpuimage.GDispatchQueue;
@@ -19,6 +20,7 @@ import com.gpuimage.sources.GPUImageOutput;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Vector;
 
 
 /**
@@ -28,8 +30,7 @@ import java.nio.ByteBuffer;
 public class GPUImageMovieWriter implements GPUImageInput {
 
     private GMediaMovieWriter mWriter;
-    private File mOutputFile;
-    private EGLSurface mEGLSurface;
+    private EGLSurface mEGLSurface = null;
     private GPUImageContext mMovieWriterContext;
     private boolean mIsRecording;
     private double mPreviousFrameTime, mStartTime;
@@ -48,14 +49,15 @@ public class GPUImageMovieWriter implements GPUImageInput {
 
     private int mColorSwizzlingPositionAttribute, mColorSwizzlingTextureCoordinateAttribute, mColorSwizzlingInputTextureUniform;
 
-    public GPUImageMovieWriter(int width, int height, String path) {
-        mVideoSize = new GSize(width, height);
+    public GPUImageMovieWriter(GMediaMovieWriter writer) {
+
+        assert (writer != null);
+        mWriter = writer;
+        mVideoSize = writer.videoSize;
         mIsRecording = false;
         mAlreadyFinishedRecording = false;
         mPreviousFrameTime = -1;
         mStartTime = -1;
-        mOutputFile = new File(path);
-        if (mOutputFile.exists()) mOutputFile.delete();
 
         mMovieWriterContext = new GPUImageContext();
         mMovieWriterContext.useSharedContext(GPUImageContext.sharedImageProcessingContext().context());
@@ -64,7 +66,6 @@ public class GPUImageMovieWriter implements GPUImageInput {
         GDispatchQueue.runSynchronouslyOnContextQueue(mMovieWriterContext, new Runnable() {
             @Override
             public void run() {
-
                 mMovieWriterContext.useAsCurrentContext();
                 mColorSwizzlingProgram = mMovieWriterContext.programForShaders(GPUImageFilter.kGPUImageVertexShaderString, GPUImageFilter.kGPUImagePassthroughFragmentShaderString);
 
@@ -138,12 +139,7 @@ public class GPUImageMovieWriter implements GPUImageInput {
             GDispatchQueue.runSynchronouslyOnContextQueue(mMovieWriterContext, new Runnable() {
                 @Override
                 public void run() {
-                    if (mWriter == null) {
-                        try {
-                            mWriter = new GMediaMovieWriter(mVideoSize.width, mVideoSize.height, mOutputFile, null);
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
+                    if (mEGLSurface == null) {
                         mEGLSurface = mMovieWriterContext.context().createWindowSurface(mWriter.getInputSurface());
                     }
                     mStartTime = frameTime;
@@ -159,7 +155,6 @@ public class GPUImageMovieWriter implements GPUImageInput {
             @Override
             public void run() {
                 mMovieWriterContext.useAsCurrentContext(mEGLSurface);
-
                 mWriter.drainEncoder(false);
                 renderAtInternalSizeUsingFramebuffer(inputFramebufferForRunnable);
                 mMovieWriterContext.context().setPresentationTime(mEGLSurface, (long) (frameTime * 1e6));
@@ -171,7 +166,9 @@ public class GPUImageMovieWriter implements GPUImageInput {
 
     @Override
     public void setInputFramebuffer(GPUImageFramebuffer newInputFramebuffer, int texIndex) {
-        if (newInputFramebuffer != null) newInputFramebuffer.lock();
+        if (newInputFramebuffer != null) {
+            newInputFramebuffer.lock();
+        }
         mFirstInputFramebuffer = newInputFramebuffer;
     }
 
@@ -218,13 +215,6 @@ public class GPUImageMovieWriter implements GPUImageInput {
         return 0;
     }
 
-    private final static float squareVertices[] = {
-            -1.0f, -1.0f,
-            1.0f, -1.0f,
-            -1.0f,  1.0f,
-            1.0f,  1.0f,
-    };
-
     private void renderAtInternalSizeUsingFramebuffer(GPUImageFramebuffer inputFramebufferToUse) {
         mMovieWriterContext.useAsCurrentContext(mEGLSurface);
 
@@ -240,9 +230,9 @@ public class GPUImageMovieWriter implements GPUImageInput {
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, inputFramebufferToUse.texture());
         GLES20.glUniform1i(mColorSwizzlingInputTextureUniform, 4);
 
-        mVerticesCoordBuffer = GPUImageOutput.fillnativebuffer(mVerticesCoordBuffer, squareVertices);
+        mVerticesCoordBuffer = GPUImageOutput.fillnativebuffer(mVerticesCoordBuffer, GPUImageFilter.imageVertices);
         GLES20.glVertexAttribPointer(mColorSwizzlingPositionAttribute, 2, GLES20.GL_FLOAT, false,0 , mVerticesCoordBuffer);
-        mTextureCoordBuffer = GPUImageOutput.fillnativebuffer(mTextureCoordBuffer, GPUImageFilter.textureCoordinatesForRotation(mInputRotation));
+        mTextureCoordBuffer = GPUImageOutput.fillnativebuffer(mTextureCoordBuffer, GPUImageView.textureCoordinatesForRotation(mInputRotation));
         GLES20.glVertexAttribPointer(mColorSwizzlingTextureCoordinateAttribute, 2, GLES20.GL_FLOAT, false, 0, mTextureCoordBuffer);
 
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
@@ -258,11 +248,8 @@ public class GPUImageMovieWriter implements GPUImageInput {
         GDispatchQueue.runSynchronouslyOnContextQueue(mMovieWriterContext, new Runnable() {
             @Override
             public void run() {
-                if (mWriter != null) return;
-                try {
-                    mWriter = new GMediaMovieWriter(mVideoSize.width, mVideoSize.height, mOutputFile, null);
-                } catch (IOException e) {
-                    e.printStackTrace();
+                if (mEGLSurface != null) {
+                    return;
                 }
                 mEGLSurface = mMovieWriterContext.context().createWindowSurface(mWriter.getInputSurface());
             }

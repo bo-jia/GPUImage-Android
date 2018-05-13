@@ -10,6 +10,8 @@ import android.os.Build;
 import android.os.Environment;
 import android.view.Surface;
 import com.gpuimage.GLog;
+import com.gpuimage.GSize;
+import com.gpuimage.extern.GReportUtils;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -18,6 +20,7 @@ import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Vector;
 
 import static android.content.ContentValues.TAG;
 
@@ -28,23 +31,23 @@ import static android.content.ContentValues.TAG;
 public class GMediaMovieWriter {
 
     // TODO: these ought to be configurable as well
-    private static final String MIME_TYPE = "video/avc";    // H.264 Advanced Video Coding
-    private static final int FRAME_RATE = 30;               // 30fps
-    private static final int IFRAME_INTERVAL = 5;           // 5 seconds between I-frames
-    private static final int BIT_RATE = 5000000;            // 5 seconds between I-frames
+
+    public static final int MAX_SAMPLE_SIZE = 256 * 1024;
 
     private Surface mInputSurface;
     private MediaMuxer mMuxer;
     private MediaCodec mEncoder;
     private MediaCodec.BufferInfo mBufferInfo;
-    private int mTrackIndex;
+    private int mVideoTrackIndex = -1;
+    private int mAudioTrackIndex = -1;
     private boolean mMuxerStarted;
 
-    private File mH264File;
+    public GSize videoSize = GSize.newZero();
 
-    private OutputStream mOutputStream;
+    private String mVideoMimeType = "video/avc";
 
     public GMediaMovieWriter(int width, int height, File outputFile, HashMap<String, Object> outputSettings) throws IOException {
+        /*
         mBufferInfo = new MediaCodec.BufferInfo();
 
         MediaFormat format = MediaFormat.createVideoFormat(MIME_TYPE, width, height);
@@ -73,36 +76,44 @@ public class GMediaMovieWriter {
 
         mTrackIndex = -1;
         mMuxerStarted = false;
+        */
 
-        mH264File = new File(outputFile.toString() + ".h264");
-        mOutputStream = new FileOutputStream(mH264File);
     }
 
-    private void loadFormat(MediaFormat format, HashMap<String, Object> settings) {
-        // Set some properties.  Failing to specify some of these can cause the MediaCodec
-        // configure() call to throw an unhelpful exception.
-        format.setInteger(MediaFormat.KEY_COLOR_FORMAT,
-                MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface);
+    public GMediaMovieWriter(String path, Vector<MediaFormat> mediaInfo) throws IOException {
 
-        format.setInteger(MediaFormat.KEY_BIT_RATE, BIT_RATE);
-        format.setInteger(MediaFormat.KEY_FRAME_RATE, FRAME_RATE);
-        format.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, IFRAME_INTERVAL);
-        
-        if (settings != null) {
-            for (Map.Entry<String, Object> entry : settings.entrySet()) {
-                if (entry.getValue() instanceof Integer) {
-                    format.setInteger(entry.getKey(), (Integer) entry.getValue());
-                } else if (entry.getValue() instanceof Long) {
-                    format.setLong(entry.getKey(), (Long) entry.getValue());
-                } else if (entry.getValue() instanceof Float) {
-                    format.setFloat(entry.getKey(), (Float) entry.getValue());
-                } else if (entry.getValue() instanceof ByteBuffer) {
-                    format.setByteBuffer(entry.getKey(), (ByteBuffer) entry.getValue());
+        mMuxer = new MediaMuxer(path,
+                MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4);
+
+        MediaFormat videoFormat = null;
+        for (MediaFormat format: mediaInfo) {
+            String mime = format.getString(MediaFormat.KEY_MIME);
+            if (mime.startsWith("video/")) {
+                GLog.i("video track " + format);
+                videoSize.width  = format.getInteger(MediaFormat.KEY_WIDTH);
+                videoSize.height = format.getInteger(MediaFormat.KEY_HEIGHT);
+                videoFormat = format;
+            } else if (mime.startsWith("audio/")) {
+                GLog.i("audio track " + format);
+                try {
+                    mAudioTrackIndex = mMuxer.addTrack(format);
+                } catch (Exception e) {
+                    mAudioTrackIndex = -1;
+                    GReportUtils.report(e, "" + format, GReportUtils.Type.ExceptionOfAudioTrack);
                 }
             }
         }
-        
-        GLog.v("format:" + format);
+
+        mBufferInfo = new MediaCodec.BufferInfo();
+
+        // Create a MediaCodec encoder, and configure it with our format.  Get a Surface
+        // we can use for input and wrap it with a class that handles the EGL work.
+        mEncoder = MediaCodec.createEncoderByType(mVideoMimeType);
+        mEncoder.configure(videoFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
+        mInputSurface = mEncoder.createInputSurface();
+        mEncoder.start();
+
+        mMuxerStarted = false;
     }
 
     /**
@@ -116,7 +127,7 @@ public class GMediaMovieWriter {
      * Releases encoder resources.
      */
     public void release() {
-        GLog.v("releasing encoder objects");
+        GLog.i("release encoder objects");
         if (mEncoder != null) {
             mEncoder.stop();
             mEncoder.release();
@@ -130,7 +141,6 @@ public class GMediaMovieWriter {
             mMuxer = null;
         }
     }
-
 
     /**
      * Extracts all pending data from the encoder and forwards it to the muxer.
@@ -170,14 +180,14 @@ public class GMediaMovieWriter {
                     throw new RuntimeException("format changed twice");
                 }
                 MediaFormat newFormat = mEncoder.getOutputFormat();
-                GLog.v("encoder output format changed: " + newFormat);
+                GLog.i("encoder output format changed: " + newFormat);
 
                 // now that we have the Magic Goodies, start the muxer
-                mTrackIndex = mMuxer.addTrack(newFormat);
+                mVideoTrackIndex = mMuxer.addTrack(newFormat);
                 mMuxer.start();
                 mMuxerStarted = true;
             } else if (encoderStatus < 0) {
-                GLog.v("unexpected result from encoder.dequeueOutputBuffer: " +
+                GLog.w("unexpected result from encoder.dequeueOutputBuffer: " +
                         encoderStatus);
                 // let's ignore it
             } else {
@@ -190,7 +200,7 @@ public class GMediaMovieWriter {
                 if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {
                     // The codec config data was pulled out and fed to the muxer when we got
                     // the INFO_OUTPUT_FORMAT_CHANGED status.  Ignore it.
-                    GLog.v("ignoring BUFFER_FLAG_CODEC_CONFIG");
+                    GLog.i("ignoring BUFFER_FLAG_CODEC_CONFIG");
                     mBufferInfo.size = 0;
                 }
 
@@ -203,15 +213,7 @@ public class GMediaMovieWriter {
                     encodedData.position(mBufferInfo.offset);
                     encodedData.limit(mBufferInfo.offset + mBufferInfo.size);
 
-                    try {
-                        byte data[] = new byte[mBufferInfo.size];
-                        encodedData.get(data);
-                        mOutputStream.write(data);
-                        mOutputStream.flush();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                    mMuxer.writeSampleData(mTrackIndex, encodedData, mBufferInfo);
+                    writeVideoSampleData(encodedData, mBufferInfo);
                     GLog.v("sent " + mBufferInfo.size + " bytes to muxer, ts=" +
                                 mBufferInfo.presentationTimeUs);
                 }
@@ -222,17 +224,23 @@ public class GMediaMovieWriter {
                     if (!endOfStream) {
                         GLog.e("reached end of stream unexpectedly");
                     } else {
-                        GLog.v("end of stream reached");
-                        try {
-                            mOutputStream.close();
-                            mH264File.delete();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
+                        GLog.i("reached end of stream");
                     }
                     break;      // out of while
                 }
             }
+        }
+    }
+
+    public synchronized void writeVideoSampleData(ByteBuffer byteBuf, MediaCodec.BufferInfo bufferInfo) {
+        if (mMuxer != null && mVideoTrackIndex >= 0) {
+            mMuxer.writeSampleData(mVideoTrackIndex, byteBuf, bufferInfo);
+        }
+    }
+
+    public synchronized void writeAudioSampleData(ByteBuffer byteBuf, MediaCodec.BufferInfo bufferInfo) {
+        if (mMuxer != null && mAudioTrackIndex >= 0) {
+            mMuxer.writeSampleData(mAudioTrackIndex, byteBuf, bufferInfo);
         }
     }
 }

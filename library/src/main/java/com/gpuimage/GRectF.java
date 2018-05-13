@@ -10,7 +10,9 @@ public class GRectF {
     public GRectF() {}
 
     public GRectF(GRectF rect) {
-    	if (rect == null) return;
+    	if (rect == null) {
+    		return;
+		}
 
     	x = rect.x;
     	y = rect.y;
@@ -31,15 +33,27 @@ public class GRectF {
 
 	@Override
 	public boolean equals(Object obj) {
-    	if (this == obj) return true;
-    	if (obj == null || getClass() != obj.getClass()) return false;
+    	if (this == obj) {
+    		return true;
+		}
+    	if (obj == null || getClass() != obj.getClass()) {
+    		return false;
+		}
 
 		GRectF o = (GRectF)obj;
 
-		if (Float.compare(o.x, x) != 0) return false;
-		if (Float.compare(o.y, y) != 0) return false;
-		if (Float.compare(o.width, width) != 0) return false;
-		if (Float.compare(o.height, height) != 0) return false;
+		if (Float.compare(o.x, x) != 0) {
+			return false;
+		}
+		if (Float.compare(o.y, y) != 0) {
+			return false;
+		}
+		if (Float.compare(o.width, width) != 0) {
+			return false;
+		}
+		if (Float.compare(o.height, height) != 0) {
+			return false;
+		}
 
 		return true;
 	}

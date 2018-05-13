@@ -1,10 +1,13 @@
 package com.gpuimage.mediautils;
 
-import com.gpuimage.GDispatchQueue;
-import com.gpuimage.GLog;
-import com.gpuimage.sources.GPUImageMovie;
+import android.media.MediaPlayer;
 
+import com.gpuimage.GLog;
+import com.gpuimage.GSize;
+
+import java.io.IOException;
 import java.util.LinkedList;
+import java.util.Vector;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -17,11 +20,16 @@ public class GMediaPlayer {
 
     private final String TAG = "GMediaPlayer";
 
-    public interface FrameReady {
-        void newFrame(byte yuv[], int width, int height, double timestamp);
+    public interface PlayerCallback {
+        void onNewFrame(byte nv12[], int width, int height, double timestamp);
+        void onEnd();
     }
 
-    private GMediaVideoReader mVideoReader = new GMediaVideoReader();;
+
+    private GMediaMovieReader mVideoReader = new GMediaMovieReader();
+    private GMediaVideoDecoder mVideoDecoder;
+
+    private MediaPlayer mAudioPlayer = new MediaPlayer();
 
     private LinkedList<Runnable> mQueue = new LinkedList<>();
     private Thread mPlayerThread;
@@ -31,28 +39,33 @@ public class GMediaPlayer {
     private double mVideoStartTime  = 0;
     private double mSystemStartTime = 0;
     private boolean mDropable = true;
-    private FrameReady mFrameReady;
-
+    private Vector<PlayerCallback> mPlayerCallbackQueue = new Vector<>();
+    private boolean mActive = true;
     private Semaphore mPauseSem = new Semaphore(0);
+
+    private boolean mLooping = false;
 
     public GMediaPlayer() {
         mPlayerThread = new Thread() {
             @Override
             public void run() {
-                while (true) {
-                    LinkedList<Runnable> tempQueue = new LinkedList<>();
+                while (mActive) {
+                    Runnable task = null;
                     synchronized (mQueue) {
-                        try {
-                            mQueue.wait();
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
+                        if (!mQueue.isEmpty()) {
+                            task = mQueue.removeFirst();
                         }
-                        tempQueue.addAll(mQueue);
-                        mQueue.clear();
                     }
-
-                    while (!tempQueue.isEmpty()) {
-                        tempQueue.removeFirst().run();
+                    if (task != null) {
+                        task.run();
+                    } else {
+                        synchronized (mQueue) {
+                            try {
+                                mQueue.wait();
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                        }
                     }
                 }
             }
@@ -61,25 +74,42 @@ public class GMediaPlayer {
     }
 
     public void loadMP4(String path) {
-        mVideoReader.loadMP4(path);
+        mVideoReader.loadMP4(path, GMediaMovieReader.Type.Video);
+        try {
+            mVideoDecoder = new GMediaVideoDecoder(mVideoReader);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        try {
+            mAudioPlayer.setDataSource(path);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public void play() {
         if (mPlaying) {
             return;
         }
-        mSystemStartTime = System.currentTimeMillis();
         synchronized (mQueue) {
             mQueue.add(new Runnable() {
                 @Override
                 public void run() {
                     mPlayingLock.lock();
+                    boolean pauseEnd = true;
                     mPlaying = true;
                     mPlayingLock.unlock();
-                    while (mPlaying) {
-                        boolean ret = mVideoReader.readFrame();
+                    mVideoStartTime = -1;
+                    while (mPlaying && mActive) {
+                        boolean ret = mVideoDecoder.decodeNextFrame();
                         if (ret) {
-                            double timestamp = mVideoReader.getTimestamp();
+                            double timestamp = mVideoDecoder.timestampMs();
+                            if (mVideoStartTime < 0) {
+                                mAudioPlayer.seekTo((int) timestamp);
+                                mAudioPlayer.start();
+                                mVideoStartTime  = timestamp;
+                                mSystemStartTime = System.currentTimeMillis();
+                            }
                             double diffVideo = (timestamp - mVideoStartTime);
                             double diffSystem = System.currentTimeMillis() - mSystemStartTime;
                             if (diffVideo > diffSystem + 1) {
@@ -92,19 +122,52 @@ public class GMediaPlayer {
 
                             if (diffVideo < diffSystem - 1 && mDropable) {
                             } else {
-                                if (mFrameReady != null) {
-                                    mFrameReady.newFrame(mVideoReader.getNV12Data(), mVideoReader.getFrameWidth(), mVideoReader.getFrameHeight(), mVideoReader.getTimestamp());
+                                for (PlayerCallback callback : mPlayerCallbackQueue) {
+                                    GSize frameSize = mVideoDecoder.getSize();
+                                    callback.onNewFrame(mVideoDecoder.getFrameNV12Data(), frameSize.width, frameSize.height, mVideoDecoder.timestampMs());
                                 }
                             }
                         } else {
-                            mPlaying = false;
+                            mVideoDecoder.stop();
+                            mVideoDecoder.start();
+                            if (mLooping) {
+                                for (PlayerCallback callback: mPlayerCallbackQueue) {
+                                    callback.onEnd();
+                                }
+                                mVideoStartTime = -1;
+                                GLog.i("loop movie");
+                            } else {
+                                mPlayingLock.lock();
+                                if (mPlaying) {
+                                    pauseEnd = false;
+                                    mPlaying = false;
+                                }
+                                mPlayingLock.unlock();
+                            }
                         }
                     }
-                    GLog.i("end of play");
+                    mAudioPlayer.pause();
+
+                    if (pauseEnd) {
+                        GLog.i("pause");
+                        mPauseSem.release();
+                    } else {
+                        for (PlayerCallback callback: mPlayerCallbackQueue) {
+                            callback.onEnd();
+                        }
+                        GLog.i("end of play");
+                        synchronized (mQueue) {
+                            mQueue.notifyAll();
+                        }
+                    }
                 }
             });
             mQueue.notifyAll();
         }
+    }
+
+    public void setLooping(boolean looping) {
+        mLooping = looping;
     }
 
     public void pause() {
@@ -119,38 +182,47 @@ public class GMediaPlayer {
             e.printStackTrace();
         }
     }
-
+    
     public void stop() {
         pause();
-        mVideoStartTime = 0;
-        mVideoReader.stop();
+        mVideoDecoder.stop();
+        mAudioPlayer.stop();
+    }
+
+    /**
+     * call stop() first, then release the player
+     */
+    public void release() {
+        mActive = false;
+        synchronized (mQueue) {
+            mQueue.notifyAll();
+        }
+        mVideoDecoder.release();
+        mAudioPlayer.release();
     }
 
     public void start() {
-        mVideoReader.start();
+        mVideoDecoder.start();
+        try {
+            mAudioPlayer.prepare();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
-    public void setFrameReadyListener(FrameReady frameReady) {
-        mFrameReady = frameReady;
+    public void reset() {
+
     }
 
-    public static void defaultConfig(GMediaPlayer player, final GPUImageMovie movie) {
-        player.setFrameReadyListener(new FrameReady() {
-            @Override
-            public void newFrame(byte[] yuv, final int width, final int height, final double timestamp) {
-                final byte[] buffer = new byte[yuv.length];
-                System.arraycopy(yuv, 0, buffer, 0, buffer.length);
-                final double t0 = System.currentTimeMillis();
-                GDispatchQueue.runAsynchronouslyOnVideoProcessingQueue(new Runnable() {
-                    @Override
-                    public void run() {
-                        if (System.currentTimeMillis() - t0 > 50) {
-                            return;
-                        }
-                        movie.processMovieFrame(buffer, width, height, timestamp);
-                    }
-                });
-            }
-        });
+    public void addPlayerListener(PlayerCallback callback) {
+        if (callback != null) {
+            mPlayerCallbackQueue.add(callback);
+        }
+    }
+
+    public void removePlayerListener(PlayerCallback callback) {
+        if (callback != null) {
+            mPlayerCallbackQueue.remove(callback);
+        }
     }
 }

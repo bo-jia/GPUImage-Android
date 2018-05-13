@@ -106,6 +106,7 @@ public class GPUImageContext {
             useImageProcessingContext();
             int param[] = new int[1];
             GLES20.glGetIntegerv(GLES20.GL_MAX_TEXTURE_SIZE, param, 0);
+            maxTextureSize = param[0];
         }
         return maxTextureSize;
     }
@@ -183,7 +184,9 @@ public class GPUImageContext {
 
     public void swapBufferForDisply(EGLSurface eglSurface) {
         boolean swap = mContext.swapBuffers(eglSurface);
-        if (!swap) GLog.e("swapBufferForDisply error");
+        if (!swap) {
+            GLog.e("swapBufferForDisply error");
+        }
     }
 
     public void useSharedContext(EglCore sharedContext) {

@@ -57,6 +57,7 @@ public class TestCameraReaderFragment extends BaseFragment {
 
     @NeedsPermission({Manifest.permission.CAMERA})
     public void onCreateViewCompleted() {
+        /*
         mGPUImageView = mCameraView.mGPUImageView;
         mGPUImageVideoCamera = GPUImageVideoCamera.getInstance();
         mGPUImageVideoCamera.resetInputSize(new GSize(1440,1080));
@@ -69,6 +70,7 @@ public class TestCameraReaderFragment extends BaseFragment {
 
         filter.addTarget(mGPUImageView);
         filter.addTarget(mMovieWriter);
+        */
     }
 
     @Override

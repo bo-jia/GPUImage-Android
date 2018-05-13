@@ -1,15 +1,15 @@
 package com.gpuimage.appdemo.fragment.testcase;
 
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+
 import com.gpuimage.GLog;
-import com.gpuimage.GPUImageFilter;
 import com.gpuimage.appdemo.R;
 import com.gpuimage.appdemo.fragment.BaseSingleGPUImageViewFragment;
 import com.gpuimage.appdemo.model.AppDirectoryHelper;
 import com.gpuimage.appdemo.model.ItemDescription;
 import com.gpuimage.appdemo.utils.CommonUtil;
 import com.gpuimage.appdemo.utils.LogUtil;
-import com.gpuimage.mediautils.GMediaPlayer;
-import com.gpuimage.mediautils.GMediaVideoReader;
 import com.gpuimage.outputs.GPUImageMovieWriter;
 import com.gpuimage.sources.GPUImageMovie;
 
@@ -39,6 +39,20 @@ public class TestMovieWriterFragment extends BaseSingleGPUImageViewFragment {
     }
 
     private void testCode() {
+
+
+        String path = AppDirectoryHelper.getImageCachePath() + "/final_video.mp4";
+        if (!CommonUtil.copyAssetsResToSD("10.mp4", path)) {
+            LogUtil.e(TAG, "copyAssetsResToSD error");
+            return;
+        }
+        String outputPath = AppDirectoryHelper.getImageCachePath() + "/out.mp4";
+
+        Bitmap sticker = BitmapFactory.decodeResource(getContext().getResources(), R.drawable.adjustred);
+
+        GLog.v("sticker w:" + sticker.getWidth() + " h:" + sticker.getHeight());
+
+        /*
         mMovie = new GPUImageMovie();
         final GMediaPlayer player = new GMediaPlayer();
         GMediaPlayer.defaultConfig(player, mMovie);
@@ -48,7 +62,7 @@ public class TestMovieWriterFragment extends BaseSingleGPUImageViewFragment {
         filter.addTarget(mGPUImageView);
 
         String path = AppDirectoryHelper.getImageCachePath() + "/final_video.mp4";
-        if (!CommonUtil.copyAssetsResToSD("out_480.mp4", path)) {
+        if (!CommonUtil.copyAssetsResToSD("10.mp4", path)) {
             LogUtil.e(TAG, "copyAssetsResToSD error");
             return;
         }
@@ -72,5 +86,6 @@ public class TestMovieWriterFragment extends BaseSingleGPUImageViewFragment {
             }
             mMovieWriter.finishRecording();
         }).run());
+        */
     }
 }

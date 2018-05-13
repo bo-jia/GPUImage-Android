@@ -155,7 +155,7 @@ public class GPUImageFilter extends GPUImageIO {
 
     public void setupFilterForSize(GSize filterFrameSize) {}
 
-    public void destroy() {
+    public void release() {
 
     }
 
@@ -163,15 +163,18 @@ public class GPUImageFilter extends GPUImageIO {
     public void useNextFrameForImageCapture() {
         mUsingNextFrameForImageCapture = true;
 
-        if (!mImageCaptureSemaphore.tryAcquire()) return;
+        if (!mImageCaptureSemaphore.tryAcquire()) {
+            return;
+        }
     }
 
     @Override
     public Bitmap newBitmapFromCurrentlyProcessedOutput() {
         double timeoutForImageCapture = 3.0;
         try {
-            if (!mImageCaptureSemaphore.tryAcquire((long) timeoutForImageCapture, TimeUnit.SECONDS))
+            if (!mImageCaptureSemaphore.tryAcquire((long) timeoutForImageCapture, TimeUnit.SECONDS)) {
                 return null;
+            }
         } catch (InterruptedException e) {
             e.printStackTrace();
             return null;
@@ -210,7 +213,7 @@ public class GPUImageFilter extends GPUImageIO {
 
     public void renderToTexture(float vertices[], float textureCoordinates[]) {
         if (preventRendering) {
-            mFirstInputFramebuffer.unlock();
+            removeFirstInputFramebuffer();
             return;
         }
         GPUImageContext.setActiveShaderProgram(mFilterProgram);
@@ -231,7 +234,7 @@ public class GPUImageFilter extends GPUImageIO {
         GLES20.glVertexAttribPointer(mFilterTextureCoordinateAttribute, 2, GLES20.GL_FLOAT, false, 0, mTextureCoordBuffer);
 
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
-        mFirstInputFramebuffer.unlock();
+        removeFirstInputFramebuffer();
 
         if (mUsingNextFrameForImageCapture) {
             mImageCaptureSemaphore.release();
@@ -245,7 +248,7 @@ public class GPUImageFilter extends GPUImageIO {
         for (GPUImageInput currentTarget : mTargets) {
             if (currentTarget != targetToIgnoreForUpdates) {
                 int indexOfObject = mTargets.indexOf(currentTarget);
-                int textureIndex = mTargetTextureIndices.indexOf(indexOfObject);
+                int textureIndex = mTargetTextureIndices.get(indexOfObject);
 
                 setInputFramebuffer(currentTarget, textureIndex);
                 currentTarget.setInputSize(outputFrameSize(), textureIndex);
@@ -306,8 +309,10 @@ public class GPUImageFilter extends GPUImageIO {
     }
 
     public void setFloat(float newFloat, String uniformName) {
-        int uniformIndex = mFilterProgram.uniformIndex(uniformName);
-        setFloat(newFloat, uniformIndex, mFilterProgram);
+        GDispatchQueue.runAsynchronouslyOnVideoProcessingQueue(()->{
+            int uniformIndex = mFilterProgram.uniformIndex(uniformName);
+            setFloat(newFloat, uniformIndex, mFilterProgram);
+        });
     }
 
     public void setSize(GSize newSize, String uniformName) {
@@ -341,9 +346,32 @@ public class GPUImageFilter extends GPUImageIO {
         });
     }
 
+    public void setVec3f(float a, float b, float c, int uniform, GLProgram shaderProgram) {
+        GDispatchQueue.runAsynchronouslyOnVideoProcessingQueue(new Runnable() {
+            @Override
+            public void run() {
+                GPUImageContext.setActiveShaderProgram(shaderProgram);
+                GLES20.glUniform3f(uniform, a, b, c);
+            }
+        });
+    }
+
+    public void setFloatArray(final float array[], int offset, int length, int uniform, final GLProgram shaderProgram) {
+        assert (offset + length <= array.length);
+        GDispatchQueue.runAsynchronouslyOnVideoProcessingQueue(new Runnable() {
+            @Override
+            public void run() {
+                GPUImageContext.setActiveShaderProgram(shaderProgram);
+                GLES20.glUniform1fv(uniform, length, array, offset);
+            }
+        });
+    }
+
     @Override
     public void setInputSize(GSize newSize, int textureIndex) {
-        if (preventRendering) return;
+        if (preventRendering) {
+            return;
+        }
 
         if (mOverrideInputSize) {
             if (mForcedMaximumSize.equals(GSize.Zero)) {
@@ -378,9 +406,10 @@ public class GPUImageFilter extends GPUImageIO {
     }
 
     @Override
-    public void setInputFramebuffer(GPUImageFramebuffer newInputFramebuffer, int texIndex) {
+    public void setInputFramebuffer(GPUImageFramebuffer newInputFramebuffer, int textureIndex) {
+        removeFirstInputFramebuffer();
         mFirstInputFramebuffer = newInputFramebuffer;
-        if (mFirstInputFramebuffer != null) mFirstInputFramebuffer.lock();
+        lockFirstInputFramebuffer();
     }
 
     public static boolean RotationSwapsWidthAndHeight(GPUImageContext.GPUImageRotationMode inputRotation) {
@@ -475,5 +504,18 @@ public class GPUImageFilter extends GPUImageIO {
     @Override
     public int nextAvailableTextureIndex() {
         return 0;
+    }
+
+    protected void removeFirstInputFramebuffer() {
+        if (mFirstInputFramebuffer != null) {
+            mFirstInputFramebuffer.unlock();
+        }
+        mFirstInputFramebuffer = null;
+    }
+
+    protected void lockFirstInputFramebuffer() {
+        if (mFirstInputFramebuffer != null) {
+            mFirstInputFramebuffer.lock();
+        }
     }
 }

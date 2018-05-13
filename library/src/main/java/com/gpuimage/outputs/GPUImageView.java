@@ -202,7 +202,7 @@ public class GPUImageView extends TextureView implements GPUImageInput, TextureV
         GDispatchQueue.runSynchronouslyOnVideoProcessingQueue(new Runnable() {
             @Override
             public void run() {
-                if (mViewSize.equals(GSize.Zero) || mInputImageSize.equals(GSize.Zero)) return;
+                if (mViewSize.equals(GSize.Zero) || mInputImageSize.equals(GSize.Zero)) {return;}
                 float heightScaling = 1.f, widthScaling = 1.f;
                 GSize currentViewSize = mViewSize;
                 GSize insectSize = new GSize(mInputImageSize);

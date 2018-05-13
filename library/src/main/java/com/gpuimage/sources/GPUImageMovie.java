@@ -1,5 +1,6 @@
 package com.gpuimage.sources;
 
+import android.graphics.Bitmap;
 import android.opengl.GLES20;
 
 import com.gpuimage.GDispatchQueue;
@@ -8,7 +9,9 @@ import com.gpuimage.GLog;
 import com.gpuimage.GPUImageContext;
 import com.gpuimage.GPUImageFilter;
 import com.gpuimage.GPUImageInput;
+import com.gpuimage.GPUImageUtils;
 import com.gpuimage.GSize;
+import com.gpuimage.cvutils.CVImageUtils;
 
 import java.nio.ByteBuffer;
 
@@ -80,8 +83,8 @@ public class GPUImageMovie extends GPUImageOutput {
         });
     }
 
-    private void loadTexture(byte[] yuv, int width, int height) {
-        if (yuv == null || width == 0 || height == 0) {
+    private void loadTexture(byte[] nv12, int width, int height) {
+        if (nv12 == null || width == 0 || height == 0) {
             return;
         }
         if (mFrameSize == null || mFrameSize.width != width || mFrameSize.height != height) {
@@ -104,8 +107,7 @@ public class GPUImageMovie extends GPUImageOutput {
             GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR);
             GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE);
             GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE);
-            GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0, GLES20.GL_LUMINANCE, width, height, 0, GLES20.GL_LUMINANCE, GLES20.GL_UNSIGNED_BYTE,
-                    null);
+            GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0, GLES20.GL_LUMINANCE, width, height, 0, GLES20.GL_LUMINANCE, GLES20.GL_UNSIGNED_BYTE, null);
 
             GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mChrominanceTexture);
             GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
@@ -116,36 +118,45 @@ public class GPUImageMovie extends GPUImageOutput {
                     null);
         }
 
-        copyFrame(yuv, width, height);
+        copyFrame(nv12, width, height);
+
+        // set unpack alignment
+        int oldAligment = GPUImageUtils.setUnpackAlignment(width);
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mLuminanceTexture);
         GLES20.glTexSubImage2D(GLES20.GL_TEXTURE_2D, 0, 0, 0, width, height, GLES20.GL_LUMINANCE, GLES20.GL_UNSIGNED_BYTE, ByteBuffer.wrap(mLuminanceData));
 
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mChrominanceTexture);
         GLES20.glTexSubImage2D(GLES20.GL_TEXTURE_2D, 0, 0, 0, width/2, height/2, GLES20.GL_LUMINANCE_ALPHA, GLES20.GL_UNSIGNED_BYTE, ByteBuffer.wrap(mChrominanceData));
+        // set old value
+        GLES20.glPixelStorei(GLES20.GL_UNPACK_ALIGNMENT, oldAligment);
     }
 
-    private void copyFrame(byte[] yuv, int width, int height) {
+
+    private void copyFrame(byte[] nv12, int width, int height) {
         if (mLuminanceData == null || mLuminanceData.length != width * height) {
             mLuminanceData = new byte[width * height];
         }
-        System.arraycopy(yuv, 0, mLuminanceData, 0, mLuminanceData.length);
+        System.arraycopy(nv12, 0, mLuminanceData, 0, mLuminanceData.length);
 
         if (mChrominanceData == null || mChrominanceData.length != width * height / 2) {
             mChrominanceData = new byte[width * height / 2];
         }
-        System.arraycopy(yuv, width * height, mChrominanceData, 0, mChrominanceData.length);
+        System.arraycopy(nv12, width * height, mChrominanceData, 0, mChrominanceData.length);
     }
 
-    // millisecond
-    public void processMovieFrame(final byte[] yuvData, final int width, final int height, final double frameTime) {
+    // frameTime is millisecond
+    public void processMovieFrame(final byte[] nv12, final int width, final int height, final double frameTime) {
         GDispatchQueue.runAsynchronouslyOnVideoProcessingQueue(new Runnable() {
             @Override
             public void run() {
+
                 mProcessingFrameTime = frameTime;
                 mPreferredConversion = GPUImageColorConversion.kColorConversion601FullRangeDefault;
 
-                loadTexture(yuvData, width, height);
+                loadTexture(nv12, width, height);
+
                 convertYUVToRGBOutput();
+
                 for (GPUImageInput currentTarget : mTargets) {
                     int indexOfObject = mTargets.indexOf(currentTarget);
                     int targetTextureIndex = mTargetTextureIndices.get(indexOfObject);
@@ -155,7 +166,6 @@ public class GPUImageMovie extends GPUImageOutput {
                 }
 
                 mOutputFramebuffer.unlock();
-
                 for (GPUImageInput currentTarget : mTargets) {
                     int indexOfObject = mTargets.indexOf(currentTarget);
                     int targetTextureIndex = mTargetTextureIndices.get(indexOfObject);
@@ -178,7 +188,7 @@ public class GPUImageMovie extends GPUImageOutput {
         mOutputFramebuffer.activateFramebuffer();
         GLog.checkFramebufferStatus();
 
-        GLES20.glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
+        GLES20.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
 
         GLES20.glActiveTexture(GLES20.GL_TEXTURE4);
