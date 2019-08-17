@@ -1,7 +1,6 @@
 # GPUImage-Android
-GPUImage android
 
-Keep original architecture of GPUImage IOS https://github.com/BradLarson/GPUImage
+Keep the architecture of GPUImage IOS https://github.com/BradLarson/GPUImage
 
-It's in an unavailable state. I am working on it. 
+Hope this project is helpful to study OpenGL ES 2.0.
 
